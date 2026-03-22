@@ -1,0 +1,71 @@
+# ── Go binaries & build artifacts ──────────────────────────────────────────────
+# Compiled binaries at project root (produced by go build / make install)
+/dev-forge-mcp
+/dev-forge
+
+# Distribution directory (make build / make dist outputs here)
+dist/
+
+# Go test cache and coverage profiles
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Go build cache (should live in GOCACHE, but guard against local overrides)
+/tmp/
+
+# ── Compiled runner binaries (if ever built standalone) ────────────────────────
+# scripts/init_db_runner and scripts/seed_runner are Go programs run via
+# `go run` — ignore any compiled artifact that might be produced inside them
+scripts/init_db_runner/init_db_runner
+scripts/seed_runner/seed_runner
+
+# ── bin/ directory compiled binaries ──────────────────────────────────────────
+# Rust imgproc binary and any other compiled artifacts placed in bin/
+bin/devforge-imgproc
+bin/dev-forge
+bin/dev-forge-mcp
+
+# ── Database files (libSQL / SQLite) ──────────────────────────────────────────
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# ── Config files that may contain secrets ─────────────────────────────────────
+config.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ── OS-generated files ────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ── Editor / IDE files ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.orig
+
+# ── Rust build artifacts (rust-imgproc) ───────────────────────────────────────
+rust-imgproc/target/
+
+# ── Explicitly NOT ignored ─────────────────────────────────────────────────────
+# db/seeds/*.sql    — seed SQL files are source-controlled
+# db/schema.sql     — schema is source-controlled
+# PRPs/             — product requirement proposals
+# scripts/*.sh      — shell scripts (install.sh, seed.sh, link-skills.sh)
+# .agents/          — agent skills and configuration
+# .claude/          — Claude Code configuration (symlink target of .agents/skills)

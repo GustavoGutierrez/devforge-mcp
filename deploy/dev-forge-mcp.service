@@ -1,0 +1,14 @@
+[Unit]
+Description=DevForge MCP Server
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/dev-forge-mcp
+Restart=on-failure
+RestartSec=5
+Environment=DEV_FORGE_CONFIG=%h/.config/dev-forge/config.json
+WorkingDirectory=%h/.local/share/dev-forge
+
+[Install]
+WantedBy=default.target
