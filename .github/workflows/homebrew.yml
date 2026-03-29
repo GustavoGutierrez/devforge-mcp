@@ -401,6 +401,8 @@ jobs:
 
       - name: Check if branch exists, create if not
         run: |
+          # Ensure remote URL is set (actions/checkout with path: may not preserve it)
+          git remote set-url origin "https://github.com/${{ github.repository }}.git"
           git checkout homebrew-tap || git checkout -b homebrew-tap
           git pull origin homebrew-tap --ff-only || true
         working-directory: homebrew-tap
@@ -475,7 +477,6 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repo: ${{ github.repository }}
           branch: homebrew-tap/update-v${{ steps.version.outputs.VERSION }}
           base: homebrew-tap
           title: "chore(homebrew): update bottles for v${{ steps.version.outputs.VERSION }}"
