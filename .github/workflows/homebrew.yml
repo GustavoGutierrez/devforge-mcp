@@ -36,6 +36,8 @@ jobs:
   build-arm64:
     name: Build macOS arm64
     runs-on: macos-14
+    outputs:
+      sha256: ${{ steps.sha256.outputs.sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -99,6 +101,8 @@ jobs:
 
       - name: Get release upload URL
         id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             TAG="v${{ github.event.inputs.version }}"
@@ -129,6 +133,8 @@ jobs:
   build-intel:
     name: Build macOS intel
     runs-on: macos-13
+    outputs:
+      sha256: ${{ steps.sha256.outputs.sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -191,6 +197,8 @@ jobs:
 
       - name: Get release upload URL
         id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             TAG="v${{ github.event.inputs.version }}"
@@ -221,6 +229,8 @@ jobs:
   build-linux:
     name: Build Linux amd64
     runs-on: ubuntu-latest
+    outputs:
+      sha256: ${{ steps.sha256.outputs.sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -281,6 +291,8 @@ jobs:
 
       - name: Get release upload URL
         id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             TAG="v${{ github.event.inputs.version }}"
