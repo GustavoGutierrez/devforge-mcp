@@ -311,8 +311,7 @@ jobs:
           echo "Upload URL: $UPLOAD_URL"
           curl -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Content-Type: application/gzip" \
-            --data-binary "@$ARCHIVE" \
+            -F "file=@$ARCHIVE" \
             --fail-with-body \
             "${UPLOAD_URL}?name=${ARCHIVE}"
 
