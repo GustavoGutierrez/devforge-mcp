@@ -11,6 +11,8 @@ class Devforge < Formula
   sha256 "47eed27d5a44a62bd9c913869419e17c8d24a92b60decff1ac544b0265453026"
 
   def install
+    # Create libexec first so we can write into it.
+    (libexec).mkpath
     # Download directly into libexec so we control extraction completely.
     # Homebrew's default extraction strips the top-level dist/ dir.
     system "curl", "-sSL", "--fail",
