@@ -273,7 +273,7 @@ jobs:
             gh release create "$TAG" \
               --repo "${{ github.repository }}" \
               --title "DevForge $TAG" \
-              --body "$BODY"
+              --notes "$BODY"
             UPLOAD_URL=$(gh api \
               "repos/${{ github.repository }}/releases/tags/$TAG" | \
               python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
