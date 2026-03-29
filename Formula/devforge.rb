@@ -35,5 +35,8 @@ class Devforge < Formula
       exec "#{libexec}/devforge" "$@"
     WRAPPER
     FileUtils.chmod 0755, bin/"devforge"
+
+    # Symlink dpf so it's in PATH.
+    bin.install_symlink libexec/"dpf"
   end
 end
