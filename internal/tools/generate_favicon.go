@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"dev-forge-mcp/internal/imgproc"
+	"dev-forge-mcp/internal/dpf"
 )
 
 // GenerateFaviconInput is the input schema for the generate_favicon tool.
@@ -35,8 +35,8 @@ func (s *Server) GenerateFavicon(ctx context.Context, input GenerateFaviconInput
 	if strings.TrimSpace(input.SourcePath) == "" {
 		return errorJSON("source_path is required")
 	}
-	if s.Imgproc == nil {
-		return errorJSON("imgproc binary not available. Ensure bin/devforge-imgproc is installed and executable.")
+	if s.DPF == nil {
+		return errorJSON("dpf binary not available. Ensure bin/dpf is installed and executable.")
 	}
 
 	bgColor := input.BackgroundColor
@@ -57,7 +57,7 @@ func (s *Server) GenerateFavicon(ctx context.Context, input GenerateFaviconInput
 
 	outputDir := filepath.Join(filepath.Dir(input.SourcePath), "favicons")
 
-	job := &imgproc.FaviconJob{
+	job := &dpf.FaviconJob{
 		Operation:        "favicon",
 		Input:            input.SourcePath,
 		OutputDir:        outputDir,
@@ -66,9 +66,9 @@ func (s *Server) GenerateFavicon(ctx context.Context, input GenerateFaviconInput
 		GenerateManifest: true,
 	}
 
-	jobResult, err := s.Imgproc.Execute(job)
+	jobResult, err := s.DPF.Execute(job)
 	if err != nil {
-		return errorJSON("imgproc error: " + err.Error())
+		return errorJSON("dpf error: " + err.Error())
 	}
 
 	var icons []IconOutput
@@ -83,7 +83,7 @@ func (s *Server) GenerateFavicon(ctx context.Context, input GenerateFaviconInput
 		htmlSnippets = append(htmlSnippets, faviconHTMLSnippet(out.Format, out.Path, int(out.Width)))
 	}
 
-	// If imgproc returned no outputs, generate expected outputs list
+	// If dpf returned no outputs, generate expected outputs list
 	if len(icons) == 0 {
 		for _, size := range sizes {
 			for _, format := range getFormats(input.Formats) {

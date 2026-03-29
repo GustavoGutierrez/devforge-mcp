@@ -66,7 +66,16 @@ func (m optimizeImagesModel) Update(msg tea.Msg) (optimizeImagesModel, tea.Cmd) 
 				}
 			}
 		default:
-			if len(msg.String()) == 1 {
+			if msg.Paste {
+				switch m.field {
+				case 0:
+					m.paths += string(msg.Runes)
+				case 1:
+					m.quality += string(msg.Runes)
+				case 2:
+					m.formats += string(msg.Runes)
+				}
+			} else if len(msg.String()) == 1 {
 				switch m.field {
 				case 0:
 					m.paths += msg.String()

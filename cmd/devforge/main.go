@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"dev-forge-mcp/internal/config"
 	"dev-forge-mcp/internal/db"
-	"dev-forge-mcp/internal/imgproc"
+	"dev-forge-mcp/internal/dpf"
 	"dev-forge-mcp/internal/tools"
 	"dev-forge-mcp/internal/tui"
 )
@@ -28,10 +29,12 @@ func main() {
 	}
 
 	// Open DB
-	if err := os.MkdirAll("db", 0755); err != nil {
-		log.Fatalf("failed to create db directory: %v", err)
+	exeDir, err := executableDir()
+	if err != nil {
+		log.Fatalf("failed to resolve executable directory: %v", err)
 	}
-	database, err := db.Open("file:./db/ui_patterns.db")
+	dbPath := "file:" + filepath.Join(exeDir, "dev-forge.db")
+	database, err := db.Open(dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
@@ -43,9 +46,10 @@ func main() {
 		embedder = db.NewEmbeddingClient(cfg.OllamaURL, cfg.EmbeddingModel)
 	}
 
-	// Initialize imgproc (optional, non-fatal)
-	var sc *imgproc.StreamClient
-	sc, err = imgproc.NewStreamClient("./bin/devforge-imgproc")
+	// Initialize dpf (DevPixelForge) (optional, non-fatal)
+	var sc *dpf.StreamClient
+	dpfPath := filepath.Join(exeDir, "dpf")
+	sc, err = dpf.NewStreamClient(dpfPath)
 	if err != nil {
 		sc = nil
 	} else {
@@ -55,7 +59,7 @@ func main() {
 	// Build tools server
 	srv := &tools.Server{
 		DB:       database,
-		Imgproc:  sc,
+		DPF:      sc,
 		Embedder: embedder,
 	}
 
@@ -68,6 +72,20 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("TUI error: %v", err)
 	}
+}
+
+// executableDir returns the directory that contains the running binary,
+// resolving symlinks so the path is always the real location.
+func executableDir() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(resolved), nil
 }
 
 // detectStack scans the current working directory for framework and CSS mode indicators.

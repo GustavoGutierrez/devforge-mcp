@@ -1,7 +1,7 @@
 # ── Go binaries & build artifacts ──────────────────────────────────────────────
 # Compiled binaries at project root (produced by go build / make install)
-/dev-forge-mcp
-/dev-forge
+/devforge-mcp
+/devforge
 
 # Distribution directory (make build / make dist outputs here)
 dist/
@@ -23,9 +23,9 @@ scripts/seed_runner/seed_runner
 
 # ── bin/ directory compiled binaries ──────────────────────────────────────────
 # Rust imgproc binary and any other compiled artifacts placed in bin/
-bin/devforge-imgproc
-bin/dev-forge
-bin/dev-forge-mcp
+bin/dpf
+bin/devforge
+bin/devforge-mcp
 
 # ── Database files (libSQL / SQLite) ──────────────────────────────────────────
 *.db

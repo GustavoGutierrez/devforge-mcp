@@ -47,9 +47,7 @@ func (m colorPalettesModel) Update(msg tea.Msg) (colorPalettesModel, tea.Cmd) {
 		case "shift+tab":
 			m.field = (m.field + 2) % 3
 		case "enter":
-			if m.field == 2 {
-				return m, m.suggest()
-			}
+			return m, m.suggest()
 		case "backspace":
 			switch m.field {
 			case 0:
@@ -66,7 +64,16 @@ func (m colorPalettesModel) Update(msg tea.Msg) (colorPalettesModel, tea.Cmd) {
 				}
 			}
 		default:
-			if len(msg.String()) == 1 {
+			if msg.Paste {
+				switch m.field {
+				case 0:
+					m.useCase += string(msg.Runes)
+				case 1:
+					m.mood += string(msg.Runes)
+				case 2:
+					m.keywords += string(msg.Runes)
+				}
+			} else if len(msg.String()) == 1 {
 				switch m.field {
 				case 0:
 					m.useCase += msg.String()
@@ -126,7 +133,7 @@ func (m colorPalettesModel) View() string {
 		}
 	}
 
-	b.WriteString("\n" + helpStyle.Render("Tab move field • Enter (on Keywords) suggest • Esc back"))
+	b.WriteString("\n" + helpStyle.Render("Tab move field • Enter suggest • Esc back"))
 
 	for _, palette := range m.palettes {
 		b.WriteString("\n\n")

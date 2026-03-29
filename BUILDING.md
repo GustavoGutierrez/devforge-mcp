@@ -1,4 +1,4 @@
-# Building dev-forge-mcp
+# Building devforge-mcp
 
 DevForge MCP is a Go MCP server that exposes UI/design, image processing, and design-system management tools via the MCP stdio transport protocol. It ships alongside a companion CLI/TUI built with Bubble Tea.
 
@@ -35,7 +35,7 @@ xcode-select --install
 |------------|---------|
 | Ollama | Generates vector embeddings for semantic search. Without it, the server falls back to FTS5 full-text search. |
 | sqlite3 CLI | Inspecting the database file manually. Not needed for building or running. |
-| Rust toolchain | Only needed to rebuild `devforge-imgproc` from source. A pre-built binary lives in `bin/devforge-imgproc`. |
+| Rust toolchain | Only needed to rebuild `devforge-imgproc` from source. A pre-built binary lives in `bin/dpf`. |
 
 **Ollama setup** (if you want embeddings):
 
@@ -69,8 +69,8 @@ make build
 
 This compiles both binaries into `dist/`:
 
-- `dist/dev-forge-mcp` — the MCP server (stdio transport)
-- `dist/dev-forge` — the CLI/TUI
+- `dist/devforge-mcp` — the MCP server (stdio transport)
+- `dist/devforge` — the CLI/TUI
 
 To build only the MCP server:
 
@@ -94,10 +94,10 @@ make db-init
 
 This runs `scripts/init_db_runner` via `go run`, which calls the project's own `db.Open()` and `RunMigrations()` functions. The schema is embedded in Go code (`internal/db/schema.go`). The operation is idempotent — safe to run multiple times.
 
-Default database path: `dist/dev-forge.db`. Override with `DB_PATH`:
+Default database path: `dist/devforge.db`. Override with `DB_PATH`:
 
 ```shell
-make db-init DB_PATH=/custom/path/dev-forge.db
+make db-init DB_PATH=/custom/path/devforge.db
 ```
 
 ### 3. Apply seeds
@@ -136,13 +136,13 @@ After `make dist` completes, the `dist/` directory contains:
 
 ```
 dist/
-├── dev-forge-mcp        # MCP server binary (stdio transport)
-├── dev-forge            # CLI/TUI binary
-├── dev-forge.db         # Fully initialized and seeded libSQL/SQLite database
-└── devforge-imgproc     # Rust image-processing binary (copied from bin/ if present)
+├── devforge-mcp        # MCP server binary (stdio transport)
+├── devforge            # CLI/TUI binary
+├── devforge.db         # Fully initialized and seeded libSQL/SQLite database
+└── dpf                 # Rust image-processing binary (copied from bin/ if present)
 ```
 
-Note: `devforge-imgproc` is only copied to `dist/` if `bin/devforge-imgproc` exists. The MCP server looks for the imgproc binary at `./bin/devforge-imgproc` relative to its working directory when launched, not inside `dist/`. See the runtime notes below.
+Note: `devforge-imgproc` is only copied to `dist/` if `bin/dpf` exists. The MCP server looks for the imgproc binary at `./bin/dpf` relative to its working directory when launched, not inside `dist/`. See the runtime notes below.
 
 ---
 
@@ -151,8 +151,8 @@ Note: `devforge-imgproc` is only copied to `dist/` if `bin/devforge-imgproc` exi
 | Target | Description |
 |--------|-------------|
 | `build` | Compile both binaries into `dist/` |
-| `build-mcp` | Compile the MCP server binary to `dist/dev-forge-mcp` |
-| `build-tui` | Compile the CLI/TUI binary to `dist/dev-forge` |
+| `build-mcp` | Compile the MCP server binary to `dist/devforge-mcp` |
+| `build-tui` | Compile the CLI/TUI binary to `dist/devforge` |
 | `install` | Build and install both binaries to `~/.local/bin/` |
 | `dist` | Build binaries + fully initialize and seed the distribution DB |
 | `db-init` | Create/migrate the libSQL DB. Idempotent. |
@@ -175,7 +175,7 @@ All variables can be overridden on the command line:
 
 ```shell
 # Use a custom database path
-make db-init DB_PATH=/var/lib/dev-forge/dev-forge.db
+make db-init DB_PATH=/var/lib/devforge/devforge.db
 
 # Use a different Ollama instance and model
 make db-embeddings OLLAMA_URL=http://192.168.1.10:11434 OLLAMA_MODEL=mxbai-embed-large
@@ -184,14 +184,14 @@ make db-embeddings OLLAMA_URL=http://192.168.1.10:11434 OLLAMA_MODEL=mxbai-embed
 make install INSTALL_DIR=/usr/local/bin
 
 # Full dist with non-default DB path
-make dist DB_PATH=/opt/dev-forge/dev-forge.db
+make dist DB_PATH=/opt/devforge/devforge.db
 ```
 
 Variable defaults (from the Makefile):
 
 | Variable | Default |
 |----------|---------|
-| `DB_PATH` | `dist/dev-forge.db` |
+| `DB_PATH` | `dist/devforge.db` |
 | `OLLAMA_URL` | `http://localhost:11434` |
 | `OLLAMA_MODEL` | `nomic-embed-text` |
 | `INSTALL_DIR` | `~/.local/bin` |
@@ -200,7 +200,7 @@ Variable defaults (from the Makefile):
 
 ## Runtime configuration
 
-The MCP server reads `~/.config/dev-forge/config.json` at startup. The file is optional — missing fields fall back to defaults.
+The MCP server reads `~/.config/devforge/config.json` at startup. The file is optional — missing fields fall back to defaults.
 
 ```json
 {
@@ -213,7 +213,7 @@ The MCP server reads `~/.config/dev-forge/config.json` at startup. The file is o
 Override the config path with the `DEV_FORGE_CONFIG` environment variable:
 
 ```shell
-DEV_FORGE_CONFIG=/etc/dev-forge/config.json ./dist/dev-forge-mcp
+DEV_FORGE_CONFIG=/etc/devforge/config.json ./dist/devforge-mcp
 ```
 
 The `configure_gemini` MCP tool saves the API key to this file and hot-reloads it without restarting the server.
@@ -231,23 +231,23 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 ```json
 {
   "mcpServers": {
-    "dev-forge": {
-      "command": "/absolute/path/to/dist/dev-forge-mcp",
+    "devforge": {
+      "command": "/absolute/path/to/dist/devforge-mcp",
       "args": []
     }
   }
 }
 ```
 
-The server must be launched from the project root (or a directory containing `./bin/devforge-imgproc`) so that the relative path to the imgproc binary resolves correctly.
+The server must be launched from the project root (or a directory containing `./bin/dpf`) so that the relative path to the imgproc binary resolves correctly.
 
 ### Attach to any MCP-compatible client
 
 Any client that supports the MCP stdio transport can attach the server:
 
 - **Transport**: `stdio`
-- **Command**: absolute path to `dist/dev-forge-mcp`
-- **Working directory**: project root (required for `./bin/devforge-imgproc` to be found)
+- **Command**: absolute path to `dist/devforge-mcp`
+- **Working directory**: project root (required for `./bin/dpf` to be found)
 
 ### Quick smoke test
 
@@ -274,10 +274,10 @@ gcc --version
 Never run `go build ./...` without `CGO_ENABLED=1`. The `go-libsql` driver requires CGO. Always use the Makefile targets, or prefix manually:
 
 ```shell
-CGO_ENABLED=1 go build ./cmd/dev-forge-mcp/
+CGO_ENABLED=1 go build ./cmd/devforge-mcp/
 ```
 
-### `db-seed` fails: "Database not found at dist/dev-forge.db"
+### `db-seed` fails: "Database not found at dist/devforge.db"
 
 Seeds require an initialized database. Run `make db-init` before `make db-seed`, or use `make seed` which chains all three steps.
 
@@ -298,10 +298,10 @@ make db-embeddings
 
 ### `optimize_images` or `generate_favicon` return errors
 
-These tools require `bin/devforge-imgproc` to exist and be executable. The server does not crash without it — only those two tools will return a structured error. To fix:
+These tools require `bin/dpf` to exist and be executable. The server does not crash without it — only those two tools will return a structured error. To fix:
 
 ```shell
-chmod +x bin/devforge-imgproc
+chmod +x bin/dpf
 ```
 
 If the binary is missing, rebuild it from source:
@@ -319,7 +319,7 @@ Set the Gemini API key via the MCP tool at runtime (no restart needed):
 {"tool": "configure_gemini", "api_key": "YOUR_KEY"}
 ```
 
-Or add it directly to `~/.config/dev-forge/config.json` before starting the server.
+Or add it directly to `~/.config/devforge/config.json` before starting the server.
 
 ### FTS5 not available
 

@@ -21,6 +21,7 @@ type generateImagesModel struct {
 	field      int
 	result     string
 	err        string
+	generating bool
 	goHome     bool
 	goSettings bool
 }
@@ -36,9 +37,21 @@ func (m generateImagesModel) Init() tea.Cmd { return nil }
 func (m generateImagesModel) Update(msg tea.Msg) (generateImagesModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case generateImageResultMsg:
-		m.result = string(msg)
+		m.generating = false
+		raw := string(msg)
+		var out tools.GenerateUIImageOutput
+		if json.Unmarshal([]byte(raw), &out) == nil {
+			m.result = raw
+			m.err = ""
+		} else {
+			m.err = raw
+			m.result = ""
+		}
 		return m, nil
 	case tea.KeyMsg:
+		if m.generating {
+			return m, nil
+		}
 		switch msg.String() {
 		case "esc":
 			if m.result != "" || m.err != "" {
@@ -64,9 +77,10 @@ func (m generateImagesModel) Update(msg tea.Msg) (generateImagesModel, tea.Cmd) 
 				m.style = nextImageStyle(m.style)
 			}
 		case "enter":
-			if m.field == 2 {
-				return m, m.generate()
-			}
+			m.generating = true
+			m.result = ""
+			m.err = ""
+			return m, m.generate()
 		case "backspace":
 			switch m.field {
 			case 0:
@@ -79,7 +93,14 @@ func (m generateImagesModel) Update(msg tea.Msg) (generateImagesModel, tea.Cmd) 
 				}
 			}
 		default:
-			if len(msg.String()) == 1 {
+			if msg.Paste {
+				switch m.field {
+				case 0:
+					m.prompt += string(msg.Runes)
+				case 2:
+					m.outputPath += string(msg.Runes)
+				}
+			} else if len(msg.String()) == 1 {
 				switch m.field {
 				case 0:
 					m.prompt += msg.String()
@@ -104,10 +125,12 @@ func (m generateImagesModel) generate() tea.Cmd {
 			OutputPath: m.outputPath,
 		}
 		key := ""
+		imageModel := ""
 		if m.cfg != nil {
 			key = m.cfg.GeminiAPIKey
+			imageModel = m.cfg.ImageModel
 		}
-		return generateImageResultMsg(m.srv.GenerateUIImage(context.Background(), input, key))
+		return generateImageResultMsg(m.srv.GenerateUIImage(context.Background(), input, key, imageModel))
 	}
 }
 
@@ -140,18 +163,26 @@ func (m generateImagesModel) View() string {
 		}
 	}
 
-	b.WriteString("\n" + helpStyle.Render("Tab move field • ↑/↓ cycle style • Enter (on Output path) generate • s Settings • Esc back"))
+	if m.generating {
+		b.WriteString("\n" + helpStyle.Render("Please wait..."))
+	} else {
+		b.WriteString("\n" + helpStyle.Render("Tab move field • ↑/↓ cycle style • Enter generate • s Settings • Esc back"))
+	}
+
+	if m.generating {
+		b.WriteString("\n\n" + dimStyle.Render("Generating image..."))
+	}
 
 	if m.result != "" {
 		var out tools.GenerateUIImageOutput
 		if json.Unmarshal([]byte(m.result), &out) == nil {
-			b.WriteString("\n\n" + successStyle.Render(fmt.Sprintf("Saved to: %s (%dx%d)", out.Path, out.Width, out.Height)))
+			b.WriteString("\n\n" + successStyle.Render(fmt.Sprintf("✓ Image generated: %s (%dx%d)", out.Path, out.Width, out.Height)))
 		} else {
-			b.WriteString("\n\n" + m.result)
+			b.WriteString("\n\n" + successStyle.Render("✓ Image generated: "+m.result))
 		}
 	}
 	if m.err != "" {
-		b.WriteString("\n\n" + errorStyle.Render(m.err))
+		b.WriteString("\n\n" + errorStyle.Render("✗ Error: "+m.err))
 	}
 
 	return b.String()

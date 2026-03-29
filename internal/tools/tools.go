@@ -8,13 +8,13 @@ import (
 	"encoding/json"
 
 	"dev-forge-mcp/internal/db"
-	"dev-forge-mcp/internal/imgproc"
+	"dev-forge-mcp/internal/dpf"
 )
 
 // Server holds shared dependencies for all tool handlers.
 type Server struct {
 	DB       *sql.DB
-	Imgproc  *imgproc.StreamClient
+	DPF      *dpf.StreamClient
 	Embedder *db.EmbeddingClient
 	// GetConfig returns the current config (hot-reloadable).
 	GetConfig func() interface{ GetGeminiAPIKey() string }

@@ -1,4 +1,4 @@
-// Package tui provides the Bubble Tea TUI for dev-forge.
+// Package tui provides the Bubble Tea TUI for devforge.
 package tui
 
 import (
@@ -23,8 +23,14 @@ const (
 	ViewGenerateImages
 	ViewOptimizeImages
 	ViewGenerateFavicon
+	ViewVideo
+	ViewAudio
+	ViewUI2MD
 	ViewColorPalettes
 	ViewSettings
+	ViewMCPSetup
+	ViewAddRecord
+	ViewAbout
 )
 
 // NavigateTo is a message that triggers view navigation.
@@ -50,8 +56,14 @@ type Model struct {
 	generateImages      generateImagesModel
 	optimizeImages      optimizeImagesModel
 	generateFavicon     generateFaviconModel
+	video               videoModel
+	audio               audioModel
+	ui2md               ui2mdModel
 	colorPalettes       colorPalettesModel
 	settings            settingsModel
+	mcpSetup            mcpSetupModel
+	addRecord           addRecordModel
+	about               aboutModel
 
 	// Detected stack
 	detectedFramework string
@@ -76,14 +88,20 @@ func New(database *sql.DB, cfg *config.Config, srv *tools.Server, framework, css
 	m.generateImages = newGenerateImagesModel(srv, cfg)
 	m.optimizeImages = newOptimizeImagesModel(srv)
 	m.generateFavicon = newGenerateFaviconModel(srv)
+	m.video = newVideoModel(nil)
+	m.audio = newAudioModel(nil)
+	m.ui2md = newUI2MDModel(srv, cfg)
 	m.colorPalettes = newColorPalettesModel(srv)
 	m.settings = newSettingsModel(cfg)
+	m.mcpSetup = newMCPSetupModel()
+	m.addRecord = newAddRecordModel(srv)
+	m.about = newAboutModel()
 	return m
 }
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
-	return m.home.Init()
+	return tea.Batch(m.home.Init(), tea.EnableBracketedPaste)
 }
 
 // Update implements tea.Model.
@@ -184,6 +202,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 
+	case ViewVideo:
+		updated, cmd := m.video.Update(msg)
+		if v, ok := updated.(videoModel); ok {
+			m.video = v
+		}
+		if m.video.goHome {
+			m.video.goHome = false
+			m.currentView = ViewHome
+		}
+		return m, cmd
+
+	case ViewAudio:
+		updated, cmd := m.audio.Update(msg)
+		if a, ok := updated.(audioModel); ok {
+			m.audio = a
+		}
+		if m.audio.goHome {
+			m.audio.goHome = false
+			m.currentView = ViewHome
+		}
+		return m, cmd
+
+	case ViewUI2MD:
+		updated, cmd := m.ui2md.Update(msg)
+		m.ui2md = updated
+		if m.ui2md.goHome {
+			m.ui2md.goHome = false
+			m.currentView = ViewHome
+		}
+		return m, cmd
+
 	case ViewColorPalettes:
 		updated, cmd := m.colorPalettes.Update(msg)
 		m.colorPalettes = updated
@@ -206,6 +255,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.currentView = ViewHome
 		}
+		return m, cmd
+
+	case ViewMCPSetup:
+		updated, cmd := m.mcpSetup.Update(msg)
+		m.mcpSetup = updated
+		if m.mcpSetup.goHome {
+			m.mcpSetup = newMCPSetupModel()
+			m.currentView = ViewHome
+		}
+		return m, cmd
+
+	case ViewAddRecord:
+		updated, cmd := m.addRecord.Update(msg)
+		m.addRecord = updated
+		if m.addRecord.goHome {
+			m.addRecord = newAddRecordModel(m.srv)
+			m.currentView = ViewHome
+		}
+		return m, cmd
+
+	case ViewAbout:
+		updated, cmd := m.about.Update(msg)
+		m.about = updated
 		return m, cmd
 	}
 
@@ -231,10 +303,22 @@ func (m Model) View() string {
 		return m.optimizeImages.View()
 	case ViewGenerateFavicon:
 		return m.generateFavicon.View()
+	case ViewVideo:
+		return m.video.View()
+	case ViewAudio:
+		return m.audio.View()
+	case ViewUI2MD:
+		return m.ui2md.View()
 	case ViewColorPalettes:
 		return m.colorPalettes.View()
 	case ViewSettings:
 		return m.settings.View()
+	case ViewMCPSetup:
+		return m.mcpSetup.View()
+	case ViewAddRecord:
+		return m.addRecord.View()
+	case ViewAbout:
+		return m.about.View()
 	}
 	return "Unknown view"
 }
@@ -257,9 +341,21 @@ func homeItemToView(idx int) View {
 	case 6:
 		return ViewGenerateFavicon
 	case 7:
-		return ViewColorPalettes
+		return ViewVideo
 	case 8:
+		return ViewAudio
+	case 9:
+		return ViewUI2MD
+	case 10:
+		return ViewColorPalettes
+	case 11:
 		return ViewSettings
+	case 12:
+		return ViewAddRecord
+	case 13:
+		return ViewMCPSetup
+	case 14:
+		return ViewAbout
 	}
 	return ViewHome
 }

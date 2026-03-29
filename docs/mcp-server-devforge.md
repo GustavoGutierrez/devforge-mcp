@@ -1,4 +1,4 @@
-# MCP Server: dev-forge-mcp
+# MCP Server: devforge-mcp
 
 Servidor MCP construido en Go que actúa como núcleo de aceleración del ciclo
 de desarrollo de software. Integra herramientas, skills y sub-agentes que
@@ -13,7 +13,7 @@ Tanto el MCP server como el CLI/TUI leen y escriben un único archivo de
 configuración local:
 
 ```
-~/.config/dev-forge/config.json
+~/.config/devforge/config.json
 ```
 
 Estructura:
@@ -174,9 +174,9 @@ El servidor se encarga de mapear:
 Genera imágenes de UI mediante **Google Gen AI Go SDK / Gemini**.
 
 > **Requiere configuración previa del API key.**
-> Si `gemini_api_key` no está presente en `~/.config/dev-forge/config.json`,
+> Si `gemini_api_key` no está presente en `~/.config/devforge/config.json`,
 > la tool devuelve un error descriptivo indicando cómo configurarla:
-> - Vía CLI/TUI: `dev-forge config` → vista **Settings**.
+> - Vía CLI/TUI: `devforge config` → vista **Settings**.
 > - Vía MCP: llamar a `configure_gemini` con el `api_key`.
 
 **Input:**
@@ -207,7 +207,7 @@ Genera imágenes de UI mediante **Google Gen AI Go SDK / Gemini**.
 ## Tool: configure_gemini
 
 Guarda el API key de Gemini en el archivo de configuración local
-(`~/.config/dev-forge/config.json`). Usar este tool cuando el agente
+(`~/.config/devforge/config.json`). Usar este tool cuando el agente
 necesita habilitar `generate_ui_image` y el key no está configurado.
 
 **Input:**
@@ -222,7 +222,7 @@ necesita habilitar `generate_ui_image` y el key no está configurado.
 
 ```json
 {
-  "config_path": "/home/user/.config/dev-forge/config.json",
+  "config_path": "/home/user/.config/devforge/config.json",
   "status": "saved"
 }
 ```
@@ -239,9 +239,9 @@ Optimiza y convierte imágenes para la web (WebP, AVIF, etc.), con soporte
 para múltiples imágenes en paralelo.
 
 Implementado mediante **DevForge Image Processor** — motor Rust de alto
-rendimiento invocado desde Go a través de `internal/imgproc/imgproc.go`
-(bridge hacia el binario `bin/devforge-imgproc`).
-Ver [`internal/imgproc/INTEGRATION.md`](../internal/imgproc/INTEGRATION.md)
+rendimiento invocado desde Go a través de `internal/dpf/dpf.go`
+(bridge hacia el binario `bin/dpf`).
+Ver [`internal/imgproc/INTEGRATION.md`](../internal/dpf/INTEGRATION.md)
 para detalles de integración, tipos de job disponibles y patrones de uso
 con `StreamClient`.
 
@@ -297,9 +297,9 @@ con `StreamClient`.
 Genera favicons modernos a partir de una imagen base o un asset existente.
 
 Implementado mediante **DevForge Image Processor** — motor Rust invocado
-desde Go a través de `internal/imgproc/imgproc.go` (bridge hacia el binario
-`bin/devforge-imgproc`), usando el job `FaviconJob`.
-Ver [`internal/imgproc/INTEGRATION.md`](../internal/imgproc/INTEGRATION.md)
+desde Go a través de `internal/dpf/dpf.go` (bridge hacia el binario
+`bin/dpf`), usando el job `FaviconJob`.
+Ver [`internal/imgproc/INTEGRATION.md`](../internal/dpf/INTEGRATION.md)
 para detalles de integración y uso con `StreamClient`.
 
 Requisitos:

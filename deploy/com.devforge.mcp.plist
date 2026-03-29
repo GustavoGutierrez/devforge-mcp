@@ -6,16 +6,16 @@
   <key>Label</key>             <string>com.devforge.mcp</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/YOUR_USERNAME/.local/bin/dev-forge-mcp</string>
+    <string>/Users/YOUR_USERNAME/.local/bin/devforge-mcp</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>DEV_FORGE_CONFIG</key>
-    <string>/Users/YOUR_USERNAME/.config/dev-forge/config.json</string>
+    <string>/Users/YOUR_USERNAME/.config/devforge/config.json</string>
   </dict>
   <key>RunAtLoad</key>         <true/>
   <key>KeepAlive</key>         <true/>
-  <key>StandardOutPath</key>   <string>/tmp/dev-forge-mcp.log</string>
-  <key>StandardErrorPath</key> <string>/tmp/dev-forge-mcp.err</string>
+  <key>StandardOutPath</key>   <string>/tmp/devforge-mcp.log</string>
+  <key>StandardErrorPath</key> <string>/tmp/devforge-mcp.err</string>
 </dict>
 </plist>

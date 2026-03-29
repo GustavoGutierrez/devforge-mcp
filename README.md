@@ -1,91 +1,79 @@
-# Dev Forge MCP
+<p align="center">
+  <img src="devforge.png" width="300" alt="DevForge MCP" />
+</p>
 
-DevForge MCP es un servidor MCP construido en Go que actúa como el núcleo de
-aceleración del ciclo de desarrollo de software. Integra un ecosistema de
-herramientas, utilidades, skills y sub-agentes especializados que trabajan en
-conjunto para reducir la fricción en cada fase del desarrollo — desde el diseño
-de arquitectura hasta la entrega de interfaces sofisticadas y producción-ready.
+# DevForge MCP
 
-Más que un generador de código, DevForge MCP es una capa de inteligencia
-transversal al stack que garantiza consistencia estructural, calidad replicable
-y diseños modernos y complejos a través de todos los proyectos, independientemente
-de la capa tecnológica en la que se trabaje.
+**"One forge for every stage of your dev workflow."**
 
-## Capacidades clave
+DevForge MCP is a Go-based MCP server that acts as a transversal intelligence layer and utility toolkit across the software development lifecycle. It exposes a rich set of tools — for code, architecture, design, media processing, and documentation — through the MCP stdio transport, making it accessible to any MCP-compatible AI client.
 
-- **Aceleración del flujo de trabajo** — Automatiza tareas repetitivas mediante
-  herramientas especializadas y sub-agentes coordinados.
-- **Consistencia estructural** — Patrones y convenciones que garantizan la misma
-  arquitectura base en cada módulo, componente o servicio.
-- **Diseño sofisticado y replicable** — Sistemas de diseño, paletas, estructuras
-  visuales y componentes de UI listos para producción.
-- **Skills y sub-agentes especializados** — Extiende sus capacidades mediante
-  skills configurables y agentes autónomos para frontend, backend, arquitectura,
-  documentación y QA.
-- **Calidad como estándar** — Buenas prácticas y validaciones integradas en el
-  propio flujo.
-- **Transversal al stack** — Herramienta común para frontend, backend,
-  infraestructura y automatización.
+Built around a SQLite-backed pattern store with FTS5 search and optional vector embeddings, it provides specialized skills and sub-agents that work together to reduce friction at every phase: from initial architecture decisions to production-ready interfaces and optimized media assets.
 
-## Soporte actual de stacks frontend
+## Key Capabilities
 
-Las herramientas de UI y diseño del conjunto actual cubren:
+- **Multimedia optimization** — Compress and convert images, video, and audio for the web using the DevPixelForge Rust engine (with FFmpeg).
+- **Design system management** — Store, search, and retrieve UI patterns, design tokens, color palettes, and architecture diagrams.
+- **Layout analysis & generation** — Audit existing layouts and generate new ones adapted to any supported frontend stack.
+- **MCP tool surface** — Works as an MCP server so any AI client (Claude, OpenCode, Copilot, etc.) can invoke its tools via stdio.
+- **CLI/TUI companion** — A Bubble Tea-based terminal interface for browsing patterns, launching audits, and configuring integrations without leaving the terminal.
+- **Specialized skills** — Extends capabilities through configurable skills and sub-agents for frontend, backend, architecture, documentation, and QA.
+- **Cross-stack** — A common tool for frontend, backend, infrastructure, and automation.
 
-- SPA vanilla JS/TS + CSS moderno (Vite 8).
+## Current Frontend Stack Support
+
+The UI and design tools adapt their output to the declared stack:
+
+- Vanilla JS/TS + modern CSS SPA (Vite 8).
 - Astro, Next.js, SvelteKit, Nuxt.js.
-- Tailwind CSS v4+ con el plugin oficial de Vite:
-  - Importando `@import "tailwindcss";` en un único archivo CSS.
-  - Design tokens en CSS en lugar de `tailwind.config.js`.
+- Tailwind CSS v4+ with the official Vite plugin:
+  - Importing `@import "tailwindcss";` in a single CSS file.
+  - Design tokens in CSS instead of `tailwind.config.js`.
 
-## Componentes
+## Components
 
-- `cmd/dev-forge-mcp/`
-  - Servidor MCP en Go con SQLite/FTS5, opcionalmente libSQL.
-  - Tools actuales (enfoque UI/diseño):
-    - `analyze_layout`
-    - `suggest_layout` (Tailwind v4 o CSS moderno)
-    - `manage_tokens`
-    - `store_pattern`
-    - `list_patterns`
-    - `generate_ui_image` (requiere Gemini API key)
-    - `optimize_images`
-    - `generate_favicon`
-    - `suggest_color_palettes`
-    - `configure_gemini`
+- `cmd/devforge-mcp/`
+  - Go MCP server with SQLite/FTS5, optionally libSQL.
+  - Current tools:
+    - **UI/Design**: `analyze_layout`, `suggest_layout`, `manage_tokens`, `store_pattern`, `list_patterns`, `suggest_color_palettes`
+    - **Images**: `optimize_images`, `generate_favicon`, `generate_ui_image` (requires Gemini API key)
+    - **Video**: `video_transcode`, `video_resize`, `video_trim`, `video_thumbnail`, `video_profile`
+    - **Audio**: `audio_transcode`, `audio_trim`, `audio_normalize`, `audio_silence_trim`
+    - **Config**: `configure_gemini`, `ui2md`
 
-- `cmd/dev-forge/`
-  - CLI/TUI en Go + Bubble Tea para:
-    - Navegar patrones y arquitecturas.
-    - Lanzar auditorías de layouts.
-    - Generar layouts, imágenes y favicons.
-    - Explorar paletas de color.
-    - Configurar integraciones (Gemini API key, etc.) desde la vista Settings.
+- `cmd/devforge/`
+  - Go CLI/TUI built with Bubble Tea for:
+    - Browsing patterns and architectures.
+    - Launching layout audits.
+    - Generating layouts, images, and favicons.
+    - Processing video and audio.
+    - Exploring color palettes.
+    - Configuring integrations (Gemini API key, etc.) from the Settings view.
 
-- `db/ui_patterns.db`
-  - SQLite con tablas de:
+- `db/devforge.db`
+  - SQLite with tables for:
     - `patterns`, `architectures`, `tokens`, `audits`, `assets`, `palettes`.
-  - Tablas virtuales FTS5 para búsqueda full‑text eficiente.
+  - FTS5 virtual tables for efficient full-text search.
 
-- `internal/imgproc/`
-  - Bridge Go hacia el motor Rust de procesamiento de imágenes.
-  - Binario: `bin/devforge-imgproc`.
-  - Ver [`internal/imgproc/INTEGRATION.md`](internal/imgproc/INTEGRATION.md).
+- `internal/dpf/`
+  - Go bridge to the DevPixelForge Rust multimedia processing engine.
+  - Binary: `bin/dpf`.
+  - Supports: images (resize, optimize, convert, favicon), video (transcode, resize, trim, thumbnail, profile), audio (transcode, trim, normalize, silence_trim).
+  - Requires FFmpeg for video/audio operations.
+  - See [`internal/dpf/INTEGRATION.md`](internal/dpf/INTEGRATION.md).
 
-## Configuración
+## Configuration
 
-Archivo compartido entre el MCP server y el CLI:
+Shared config file between the MCP server and the CLI:
 
 ```
-~/.config/dev-forge/config.json
+~/.config/devforge/config.json
 ```
 
-Sobreescribible con la variable de entorno `DEV_FORGE_CONFIG`.
+Override with the `DEV_FORGE_CONFIG` environment variable.
 
-## Opcional
+## System Requirements
 
-- Migrar a libSQL para vector search semántico si se necesita
-  búsqueda por similitud entre descripciones de patrones, manteniendo
-  la opción de ejecución 100% local con SQLite estándar.
-
-
-turso dev --db-file /home/meridian/Documentos/Proyectos/Personal/dev-forge/dev-forge-mcp/dist/dev-forge.db
+- **Go 1.24+** with CGO enabled (`CGO_ENABLED=1`)
+- **FFmpeg 6.0+** (for video/audio operations)
+- **Rust toolchain** (only if recompiling the `dpf` binary)

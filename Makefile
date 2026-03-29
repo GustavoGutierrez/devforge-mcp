@@ -1,16 +1,17 @@
-# Makefile — dev-forge-mcp
+# Makefile — devforge-mcp
 # Requires: CGO_ENABLED=1 (libsql / go-sqlite3)
 # Usage: make help
 
 # ── Variables ──────────────────────────────────────────────────────────────────
-BINARY_MCP   := dev-forge-mcp
-BINARY_TUI   := dev-forge
+BINARY_MCP   := devforge-mcp
+BINARY_TUI   := devforge
 DIST_DIR     := dist
 BIN_DIR      := bin
+VERSION      := $(shell cat VERSION 2>/dev/null | tr -d '[:space:]' || echo "0.0.0")
 
 # DB path used by the app at runtime (relative to project root).
 # The canonical distribution DB lives inside dist/ so the binary and DB ship together.
-DB_PATH      := $(DIST_DIR)/dev-forge.db
+DB_PATH      := $(DIST_DIR)/devforge.db
 
 # Seeds directory
 SEEDS_DIR    := db/seeds
@@ -38,7 +39,7 @@ SEED_SCRIPT  := scripts/seed.sh
 .DEFAULT_GOAL := help
 
 # ── Phony targets ──────────────────────────────────────────────────────────────
-.PHONY: build build-mcp build-tui install dist \
+.PHONY: build build-mcp build-tui install uninstall dist \
         db-init db-seed db-embeddings seed \
         clean test run tui \
         build-rust build-rust-static help
@@ -51,43 +52,35 @@ SEED_FILES := $(sort $(wildcard $(SEEDS_DIR)/*.sql))
 ## build: Compile both binaries into ./dist/
 build: build-mcp build-tui
 
-## build-mcp: Compile the MCP server binary to ./dist/dev-forge-mcp
+## build-mcp: Compile the MCP server binary to ./dist/devforge-mcp
 build-mcp:
 	@mkdir -p $(DIST_DIR)
-	$(GO_BUILD) -o $(DIST_DIR)/$(BINARY_MCP) ./cmd/dev-forge-mcp/
+	$(GO_BUILD) -o $(DIST_DIR)/$(BINARY_MCP) ./cmd/devforge-mcp/
 	@echo "Built $(DIST_DIR)/$(BINARY_MCP)"
 
-## build-tui: Compile the CLI/TUI binary to ./dist/dev-forge
+## build-tui: Compile the CLI/TUI binary to ./dist/devforge
 build-tui:
 	@mkdir -p $(DIST_DIR)
-	$(GO_BUILD) -o $(DIST_DIR)/$(BINARY_TUI) ./cmd/dev-forge/
+	$(GO_BUILD) -o $(DIST_DIR)/$(BINARY_TUI) ./cmd/devforge/
 	@echo "Built $(DIST_DIR)/$(BINARY_TUI)"
 
 # ── Install ────────────────────────────────────────────────────────────────────
 
-## install: Build and install both binaries to ~/.local/bin/
-install: build
-	@mkdir -p $(INSTALL_DIR)
-	cp $(DIST_DIR)/$(BINARY_MCP) $(INSTALL_DIR)/$(BINARY_MCP)
-	cp $(DIST_DIR)/$(BINARY_TUI) $(INSTALL_DIR)/$(BINARY_TUI)
-	chmod +x $(INSTALL_DIR)/$(BINARY_MCP) $(INSTALL_DIR)/$(BINARY_TUI)
-	@if [ -f $(BIN_DIR)/devforge-imgproc ]; then \
-		chmod +x $(BIN_DIR)/devforge-imgproc; \
-		cp $(BIN_DIR)/devforge-imgproc $(INSTALL_DIR)/devforge-imgproc; \
-		echo "Installed devforge-imgproc to $(INSTALL_DIR)/"; \
-	else \
-		echo "Warning: $(BIN_DIR)/devforge-imgproc not found — optimize_images / generate_favicon unavailable"; \
-	fi
-	@echo "Installed to $(INSTALL_DIR)/"
-	@echo "Ensure $(INSTALL_DIR) is in your PATH: export PATH=\"\$$HOME/.local/bin:\$$PATH\""
+## install: Install to ~/.local/share/devforge/versions/$(VERSION)/ with symlinks in ~/.local/bin/
+install:
+	@bash scripts/install.sh
+
+## uninstall: Remove all devforge binaries, data, and symlinks
+uninstall:
+	@bash scripts/uninstall.sh
 
 # ── Distribution package ───────────────────────────────────────────────────────
 
 ## dist: Build binaries + fully initialize and seed the distribution DB
 dist: build seed
-	@if [ -f $(BIN_DIR)/devforge-imgproc ]; then \
-		chmod +x $(BIN_DIR)/devforge-imgproc; \
-		cp $(BIN_DIR)/devforge-imgproc $(DIST_DIR)/devforge-imgproc; \
+	@if [ -f $(BIN_DIR)/dpf ]; then \
+		chmod +x $(BIN_DIR)/dpf; \
+		cp $(BIN_DIR)/dpf $(DIST_DIR)/dpf; \
 	fi
 	@echo "Distribution package ready in $(DIST_DIR)/"
 	@echo "  binary : $(DIST_DIR)/$(BINARY_MCP)"
@@ -96,7 +89,7 @@ dist: build seed
 # ── Database ───────────────────────────────────────────────────────────────────
 
 ## db-init: Create/migrate the libSQL DB using the project's own db.Open() / RunMigrations()
-##          Writes to DB_PATH (default: dist/dev-forge.db). Idempotent.
+##          Writes to DB_PATH (default: dist/devforge.db). Idempotent.
 db-init:
 	@echo "Initializing database at $(DB_PATH)..."
 	@mkdir -p $(DIST_DIR)
@@ -122,7 +115,7 @@ db-embeddings:
 ## seed: Full seed pipeline — db-init + db-seed + db-embeddings (idempotent)
 seed: db-init db-seed db-embeddings
 
-# ── Run ────────────────────────────────────────────────────────────────────────
+# ── Run ───────────────────────────────────────────────────────────────────────
 
 ## run: Build and run the MCP server (stdio transport)
 run: build-mcp
@@ -139,21 +132,21 @@ tui: build-tui
 test:
 	$(GO_TEST) ./...
 
-# ── Rust image-processing binary ───────────────────────────────────────────────
+# ── Rust binary (dpf - DevPixelForge) ─────────────────────────────────────────
 
-## build-rust: Build the imgproc Rust binary (dynamic, requires Rust toolchain)
+## build-rust: Build the dpf Rust binary (dynamic, requires Rust toolchain)
 build-rust:
 	cd rust-imgproc && cargo build --release
-	cp rust-imgproc/target/release/devforge-imgproc $(BIN_DIR)/devforge-imgproc
-	chmod +x $(BIN_DIR)/devforge-imgproc
-	@echo "Built $(BIN_DIR)/devforge-imgproc"
+	cp rust-imgproc/target/release/dpf $(BIN_DIR)/dpf
+	chmod +x $(BIN_DIR)/dpf
+	@echo "Built $(BIN_DIR)/dpf"
 
-## build-rust-static: Build a fully static imgproc binary (musl, no system deps)
+## build-rust-static: Build a fully static dpf binary (musl, no system deps)
 build-rust-static:
 	cd rust-imgproc && cargo build --release --target x86_64-unknown-linux-musl
-	cp rust-imgproc/target/x86_64-unknown-linux-musl/release/devforge-imgproc $(BIN_DIR)/devforge-imgproc
-	chmod +x $(BIN_DIR)/devforge-imgproc
-	@echo "Built static $(BIN_DIR)/devforge-imgproc"
+	cp rust-imgproc/target/x86_64-unknown-linux-musl/release/dpf $(BIN_DIR)/dpf
+	chmod +x $(BIN_DIR)/dpf
+	@echo "Built static $(BIN_DIR)/dpf"
 
 # ── Clean ──────────────────────────────────────────────────────────────────────
 
@@ -166,7 +159,7 @@ clean:
 
 ## help: Show this help message
 help:
-	@echo "dev-forge-mcp — available make targets:"
+	@echo "devforge-mcp — available make targets:"
 	@echo ""
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/^## /  /' | column -t -s ':'
 	@echo ""

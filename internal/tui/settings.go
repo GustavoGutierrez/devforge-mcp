@@ -10,21 +10,24 @@ import (
 )
 
 type settingsModel struct {
-	cfg    *config.Config
-	apiKey string // masked input buffer
-	field  int
-	status string
-	err    string
-	goHome bool
-	saved  bool
+	cfg        *config.Config
+	apiKey     string // masked input buffer
+	imageModel string // plain text input buffer
+	field      int
+	status     string
+	err        string
+	goHome     bool
+	saved      bool
 }
 
 func newSettingsModel(cfg *config.Config) settingsModel {
 	key := ""
+	imageModel := ""
 	if cfg != nil {
 		key = cfg.GeminiAPIKey
+		imageModel = cfg.ImageModel
 	}
-	return settingsModel{cfg: cfg, apiKey: key}
+	return settingsModel{cfg: cfg, apiKey: key, imageModel: imageModel}
 }
 
 func (m settingsModel) Init() tea.Cmd { return nil }
@@ -39,6 +42,7 @@ func (m settingsModel) Update(msg tea.Msg) (settingsModel, tea.Cmd) {
 			m.saved = true
 			if m.cfg != nil {
 				m.cfg.GeminiAPIKey = m.apiKey
+				m.cfg.ImageModel = m.imageModel
 			}
 		}
 		return m, nil
@@ -47,14 +51,14 @@ func (m settingsModel) Update(msg tea.Msg) (settingsModel, tea.Cmd) {
 		case "esc":
 			m.goHome = true
 		case "tab":
-			m.field = (m.field + 1) % 3
+			m.field = (m.field + 1) % 4
 		case "shift+tab":
-			m.field = (m.field + 2) % 3
+			m.field = (m.field + 3) % 4
 		case "enter":
 			switch m.field {
-			case 1: // Save
+			case 2: // Save
 				return m, m.save()
-			case 2: // Delete key
+			case 3: // Delete key
 				m.apiKey = ""
 				return m, m.save()
 			}
@@ -62,9 +66,24 @@ func (m settingsModel) Update(msg tea.Msg) (settingsModel, tea.Cmd) {
 			if m.field == 0 && len(m.apiKey) > 0 {
 				m.apiKey = m.apiKey[:len(m.apiKey)-1]
 			}
+			if m.field == 1 && len(m.imageModel) > 0 {
+				m.imageModel = m.imageModel[:len(m.imageModel)-1]
+			}
 		default:
-			if m.field == 0 && len(msg.String()) == 1 {
-				m.apiKey += msg.String()
+			if msg.Paste {
+				if m.field == 0 {
+					m.apiKey += string(msg.Runes)
+				}
+				if m.field == 1 {
+					m.imageModel += string(msg.Runes)
+				}
+			} else {
+				if m.field == 0 && len(msg.String()) == 1 {
+					m.apiKey += msg.String()
+				}
+				if m.field == 1 && len(msg.String()) == 1 {
+					m.imageModel += msg.String()
+				}
 			}
 		}
 	}
@@ -80,9 +99,11 @@ func (m settingsModel) save() tea.Cmd {
 			cfg = &config.Config{
 				OllamaURL:      "http://localhost:11434",
 				EmbeddingModel: "nomic-embed-text",
+				ImageModel:     "gemini-2.5-flash-image",
 			}
 		}
 		cfg.GeminiAPIKey = m.apiKey
+		cfg.ImageModel = m.imageModel
 		err := config.Save(cfg)
 		return settingsSavedMsg{err: err}
 	}
@@ -105,7 +126,7 @@ func (m settingsModel) View() string {
 	b.WriteString(fmt.Sprintf("Gemini API key: %s\n\n", statusColor.Render(statusIcon)))
 
 	// Fields
-	cursor0, cursor1, cursor2 := "  ", "  ", "  "
+	cursor0, cursor1, cursor2, cursor3 := "  ", "  ", "  ", "  "
 	switch m.field {
 	case 0:
 		cursor0 = "> "
@@ -113,6 +134,8 @@ func (m settingsModel) View() string {
 		cursor1 = "> "
 	case 2:
 		cursor2 = "> "
+	case 3:
+		cursor3 = "> "
 	}
 
 	// Masked key input
@@ -124,18 +147,27 @@ func (m settingsModel) View() string {
 		b.WriteString(normalStyle.Render(cursor0+"API Key: "+maskedKey) + "\n")
 	}
 
-	// Save button
+	// Image model input
+	imageModelVal := m.imageModel
 	if m.field == 1 {
-		b.WriteString(selectedStyle.Render(cursor1+"[Save]") + "\n")
+		imageModelVal += "_"
+		b.WriteString(selectedStyle.Render(cursor1+"Image Model: "+imageModelVal) + "\n")
 	} else {
-		b.WriteString(normalStyle.Render(cursor1+"[Save]") + "\n")
+		b.WriteString(normalStyle.Render(cursor1+"Image Model: "+imageModelVal) + "\n")
+	}
+
+	// Save button
+	if m.field == 2 {
+		b.WriteString(selectedStyle.Render(cursor2+"[Save]") + "\n")
+	} else {
+		b.WriteString(normalStyle.Render(cursor2+"[Save]") + "\n")
 	}
 
 	// Delete button
-	if m.field == 2 {
-		b.WriteString(selectedStyle.Render(cursor2+"[Delete key]") + "\n")
+	if m.field == 3 {
+		b.WriteString(selectedStyle.Render(cursor3+"[Delete key]") + "\n")
 	} else {
-		b.WriteString(normalStyle.Render(cursor2+"[Delete key]") + "\n")
+		b.WriteString(normalStyle.Render(cursor3+"[Delete key]") + "\n")
 	}
 
 	b.WriteString("\n" + helpStyle.Render("Tab move • Enter activate • Esc back"))

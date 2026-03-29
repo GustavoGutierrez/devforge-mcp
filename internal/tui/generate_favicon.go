@@ -12,13 +12,14 @@ import (
 )
 
 type generateFaviconModel struct {
-	srv    *tools.Server
-	source string
-	bgColor string
-	field  int
-	result string
-	err    string
-	goHome bool
+	srv        *tools.Server
+	source     string
+	bgColor    string
+	field      int
+	result     string
+	err        string
+	generating bool
+	goHome     bool
 }
 
 func newGenerateFaviconModel(srv *tools.Server) generateFaviconModel {
@@ -30,9 +31,21 @@ func (m generateFaviconModel) Init() tea.Cmd { return nil }
 func (m generateFaviconModel) Update(msg tea.Msg) (generateFaviconModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case faviconResultMsg:
-		m.result = string(msg)
+		m.generating = false
+		raw := string(msg)
+		var out tools.GenerateFaviconOutput
+		if json.Unmarshal([]byte(raw), &out) == nil {
+			m.result = raw
+			m.err = ""
+		} else {
+			m.err = raw
+			m.result = ""
+		}
 		return m, nil
 	case tea.KeyMsg:
+		if m.generating {
+			return m, nil
+		}
 		switch msg.String() {
 		case "esc":
 			if m.result != "" || m.err != "" {
@@ -44,11 +57,12 @@ func (m generateFaviconModel) Update(msg tea.Msg) (generateFaviconModel, tea.Cmd
 		case "tab":
 			m.field = (m.field + 1) % 2
 		case "shift+tab":
-			m.field = (m.field + 1) % 2
+			m.field = (m.field - 1 + 2) % 2
 		case "enter":
-			if m.field == 1 {
-				return m, m.generate()
-			}
+			m.generating = true
+			m.result = ""
+			m.err = ""
+			return m, m.generate()
 		case "backspace":
 			switch m.field {
 			case 0:
@@ -61,7 +75,14 @@ func (m generateFaviconModel) Update(msg tea.Msg) (generateFaviconModel, tea.Cmd
 				}
 			}
 		default:
-			if len(msg.String()) == 1 {
+			if msg.Paste {
+				switch m.field {
+				case 0:
+					m.source += string(msg.Runes)
+				case 1:
+					m.bgColor += string(msg.Runes)
+				}
+			} else if len(msg.String()) == 1 {
 				switch m.field {
 				case 0:
 					m.source += msg.String()
@@ -113,12 +134,20 @@ func (m generateFaviconModel) View() string {
 		}
 	}
 
-	b.WriteString("\n" + helpStyle.Render("Tab move field • Enter (on Background) generate • Esc back"))
+	if m.generating {
+		b.WriteString("\n" + helpStyle.Render("Please wait..."))
+	} else {
+		b.WriteString("\n" + helpStyle.Render("Tab move field • Enter generate • Esc back"))
+	}
+
+	if m.generating {
+		b.WriteString("\n\n" + dimStyle.Render("Generating favicon..."))
+	}
 
 	if m.result != "" {
 		var out tools.GenerateFaviconOutput
 		if json.Unmarshal([]byte(m.result), &out) == nil {
-			b.WriteString("\n\n" + successStyle.Render(fmt.Sprintf("Generated %d icons", len(out.Icons))))
+			b.WriteString("\n\n" + successStyle.Render(fmt.Sprintf("✓ Favicon generated: %d icons", len(out.Icons))))
 			for _, icon := range out.Icons {
 				b.WriteString(fmt.Sprintf("\n  %s %dx%d → %s", icon.Format, icon.Size, icon.Size, icon.Path))
 			}
@@ -129,11 +158,11 @@ func (m generateFaviconModel) View() string {
 				}
 			}
 		} else {
-			b.WriteString("\n\n" + m.result)
+			b.WriteString("\n\n" + successStyle.Render("✓ Favicon generated: "+m.result))
 		}
 	}
 	if m.err != "" {
-		b.WriteString("\n\n" + errorStyle.Render(m.err))
+		b.WriteString("\n\n" + errorStyle.Render("✗ Error: "+m.err))
 	}
 
 	return b.String()

@@ -28,9 +28,12 @@ type GenerateUIImageOutput struct {
 }
 
 // GenerateUIImage implements the generate_ui_image MCP tool.
-func (s *Server) GenerateUIImage(ctx context.Context, input GenerateUIImageInput, geminiAPIKey string) string {
+func (s *Server) GenerateUIImage(ctx context.Context, input GenerateUIImageInput, geminiAPIKey string, imageModel string) string {
 	if geminiAPIKey == "" {
 		return errorJSON("Gemini API key not configured. Use configure_gemini to set it.")
+	}
+	if imageModel == "" {
+		imageModel = "gemini-2.5-flash-image"
 	}
 	if strings.TrimSpace(input.Prompt) == "" {
 		return errorJSON("prompt is required")
@@ -66,7 +69,7 @@ func (s *Server) GenerateUIImage(ctx context.Context, input GenerateUIImageInput
 	}
 
 	result, err := client.Models.GenerateContent(ctx,
-		"gemini-2.0-flash-preview-image-generation",
+		imageModel,
 		genai.Text(fullPrompt),
 		&genai.GenerateContentConfig{
 			ResponseModalities: []string{"IMAGE", "TEXT"},

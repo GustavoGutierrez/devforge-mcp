@@ -2,7 +2,7 @@
 
 **Status**: Draft
 **Created**: 2026-03-22
-**Module**: `dev-forge-mcp`
+**Module**: `devforge-mcp`
 
 ---
 
@@ -18,16 +18,16 @@ The system is designed to be consumed by AI agents (see `AGENTS.md`) and human d
 
 - Provide a stable, well-typed MCP server exposing all design and image tools.
 - Persist patterns, architectures, tokens, and palettes in a local libSQL database. Use FTS5 for keyword and tag search. Use vector ANN search (libsql_vector_idx) for semantic similarity queries. Both run fully locally — no Turso cloud dependency.
-- Offload heavy image processing to a Rust binary via `internal/imgproc`.
+- Offload heavy image processing to a Rust binary via `internal/dpf`.
 - Support optional Gemini API integration for AI image generation.
 - Ship a Bubble Tea TUI that wraps all server capabilities in a navigable interface.
 - Allow AI agents to consume tools with structured stack metadata (`css_mode`, `framework`).
-- Ship comprehensive test coverage for all packages: unit tests for pure functions, integration tests using an in-memory libSQL DB, and stub-based tests for imgproc and embedding dependencies.
+- Ship comprehensive test coverage for all packages: unit tests for pure functions, integration tests using an in-memory libSQL DB, and stub-based tests for dpf and embedding dependencies.
 - Provide an operations guide covering build, installation, MCP client configuration, and system-level auto-start via systemd (Linux) and launchd (macOS).
 
 ### Non-Goals
 
-- This PRP does not cover the Rust `bin/devforge-imgproc` binary itself — it is a pre-built artifact.
+- This PRP does not cover the Rust `bin/dpf` binary itself — it is a pre-built artifact.
 - Production deployment, containerization, or cloud hosting are out of scope.
 - The sqld server binary is optional — all functionality runs in embedded mode via go-libsql.
 
@@ -38,7 +38,7 @@ The system is designed to be consumed by AI agents (see `AGENTS.md`) and human d
 ### Go Module
 
 ```
-module dev-forge-mcp
+module devforge-mcp
 
 go 1.22
 ```
@@ -46,11 +46,11 @@ go 1.22
 ### Directory Layout
 
 ```
-dev-forge-mcp/
+devforge-mcp/
 ├── cmd/
-│   ├── dev-forge-mcp/       # MCP server entry point
+│   ├── devforge-mcp/       # MCP server entry point
 │   │   └── main.go
-│   └── dev-forge/           # CLI/TUI entry point
+│   └── devforge/           # CLI/TUI entry point
 │       └── main.go
 ├── internal/
 │   ├── db/                  # libSQL setup, migrations, queries, embeddings
@@ -61,7 +61,7 @@ dev-forge-mcp/
 │   │   └── embed_test.go        # embedding client graceful-skip test
 │   ├── config/              # Config file read/write
 │   │   └── config.go
-│   ├── imgproc/             # Go bridge to Rust binary
+│   ├── dpf/             # Go bridge to Rust binary
 │   │   ├── client.go        # One-shot Client
 │   │   ├── stream.go        # StreamClient (persistent process)
 │   │   └── jobs.go          # Job types: ResizeJob, OptimizeJob, ConvertJob, FaviconJob, SpriteJob, PlaceholderJob, BatchJob
@@ -100,21 +100,21 @@ dev-forge-mcp/
 │   ├── layouts/
 │   │   └── hero.html            # fixture for analyze_layout tests
 │   └── images/
-│       └── logo.png             # fixture for imgproc tests
+│       └── logo.png             # fixture for dpf tests
 ├── deploy/
-│   ├── dev-forge-mcp.service   # systemd user service unit
+│   ├── devforge-mcp.service   # systemd user service unit
 │   └── com.devforge.mcp.plist  # macOS launchd plist
 ├── scripts/
 │   ├── link-skills.sh          # symlink .agents/skills → .claude/skills
 │   └── install.sh              # copy binaries to ~/.local/bin
 ├── bin/
-│   └── devforge-imgproc     # Pre-built Rust binary (chmod +x required)
+│   └── devforge-dpf     # Pre-built Rust binary (chmod +x required)
 ├── docs/
 │   ├── mcp-server-dev-forge.md
 │   ├── cli-tui.md
 │   └── schema.md
 ├── PRPs/
-│   └── 001-dev-forge-mcp-app.md
+│   └── 001-devforge-mcp-app.md
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
@@ -143,7 +143,7 @@ github.com/google/uuid               # UUID generation for DB primary keys
 
 **File**: `internal/config/config.go`
 
-Config path: `~/.config/dev-forge/config.json`
+Config path: `~/.config/devforge/config.json`
 Override: `DEV_FORGE_CONFIG` environment variable.
 
 ```go
@@ -424,12 +424,12 @@ go func() {
 
 ### 3.3 MCP Server
 
-**Entry point**: `cmd/dev-forge-mcp/main.go`
+**Entry point**: `cmd/devforge-mcp/main.go`
 
 ```go
 type MCPServer struct {
     db      *sql.DB
-    imgproc *imgproc.StreamClient
+    dpf *dpf.StreamClient
     config  *config.Config
     embedder *db.EmbeddingClient   // nil if Ollama unavailable (graceful degradation)
     mu      sync.RWMutex           // protects config for hot-reload
@@ -440,7 +440,7 @@ Startup sequence:
 1. Load config.
 2. Open libSQL DB and run migrations.
 3. Initialize `EmbeddingClient` (test Ollama availability with 1-second timeout; set to nil if unavailable).
-4. Initialize `StreamClient` for imgproc (`defer sc.Close()`).
+4. Initialize `StreamClient` for dpf (`defer sc.Close()`).
 5. Register all tools with the MCP SDK.
 6. Serve via stdio transport.
 7. Launch embedding backfill goroutine if Ollama is available.
@@ -666,7 +666,7 @@ Saves to `config.json` with `0600` permissions. Updates in-memory config on the 
 
 #### `optimize_images`
 
-**Purpose**: Optimize and convert images using the Rust imgproc binary.
+**Purpose**: Optimize and convert images using the Rust dpf binary.
 
 **Input schema**:
 ```json
@@ -704,7 +704,7 @@ Saves to `config.json` with `0600` permissions. Updates in-memory config on the 
 }
 ```
 
-Implementation: use `StreamClient.Process(OptimizeJob{...})` from `internal/imgproc`. The `StreamClient` is initialized once at server startup and reused.
+Implementation: use `StreamClient.Process(OptimizeJob{...})` from `internal/dpf`. The `StreamClient` is initialized once at server startup and reused.
 
 ---
 
@@ -734,7 +734,7 @@ Implementation: use `StreamClient.Process(OptimizeJob{...})` from `internal/imgp
 }
 ```
 
-Implementation: use `imgproc.FaviconJob{...}` via the `StreamClient`.
+Implementation: use `dpf.FaviconJob{...}` via the `StreamClient`.
 
 ---
 
@@ -775,11 +775,11 @@ Implementation: use `imgproc.FaviconJob{...}` via the `StreamClient`.
 
 ---
 
-### 3.5 imgproc Integration
+### 3.5 dpf Integration
 
-**Package**: `internal/imgproc`
+**Package**: `internal/dpf`
 
-**Binary**: `bin/devforge-imgproc` — pre-built Rust binary. Must be executable (`chmod +x`).
+**Binary**: `bin/dpf` — pre-built Rust binary. Must be executable (`chmod +x`).
 
 #### Client Types
 
@@ -838,17 +838,17 @@ type BatchJob struct {
 
 **Server startup pattern**:
 ```go
-sc, err := imgproc.NewStreamClient("./bin/devforge-imgproc")
+sc, err := dpf.NewStreamClient("./bin/dpf")
 if err != nil { log.Fatal(err) }
 defer sc.Close()
-server := &MCPServer{imgproc: sc, ...}
+server := &MCPServer{dpf: sc, ...}
 ```
 
 ---
 
 ### 3.6 CLI/TUI Application
 
-**Entry point**: `cmd/dev-forge/main.go`
+**Entry point**: `cmd/devforge/main.go`
 **Framework**: Bubble Tea (`charmbracelet/bubbletea`)
 
 #### Navigation Model
@@ -1002,11 +1002,11 @@ Every package must have a corresponding `_test.go` file. Tests run with `go test
 | Category | Package | Pattern |
 |----------|---------|---------|
 | Unit | `internal/config` | Pure function tests, no I/O |
-| Unit | `internal/imgproc` | Job struct serialization tests |
+| Unit | `internal/dpf` | Job struct serialization tests |
 | Integration | `internal/db` | Real libSQL in-memory or temp file DB |
 | Integration | `internal/tools` | Tool handlers with test DB |
-| Integration | `internal/tools` | imgproc tools with stub binary |
-| E2E smoke | `cmd/dev-forge-mcp` | Start server, invoke one tool via MCP protocol |
+| Integration | `internal/tools` | dpf tools with stub binary |
+| E2E smoke | `cmd/devforge-mcp` | Start server, invoke one tool via MCP protocol |
 
 #### DB tests (`internal/db/db_test.go`)
 
@@ -1045,7 +1045,7 @@ Required tests per tool:
 | `configure_gemini` | writes config file with 0600; subsequent Load() returns the key |
 | `suggest_color_palettes` | returns palettes with all 7 token keys; count param respected |
 
-For tools using imgproc (`optimize_images`, `generate_favicon`): use a stub `StreamClient` that returns a hardcoded JSON response. Do not require the real Rust binary in tests.
+For tools using dpf (`optimize_images`, `generate_favicon`): use a stub `StreamClient` that returns a hardcoded JSON response. Do not require the real Rust binary in tests.
 
 For `generate_ui_image`: test that missing API key returns structured error without calling Gemini.
 
@@ -1062,7 +1062,7 @@ package testutil
 
 func NewTestDB(t *testing.T) *sql.DB           // temp libSQL DB with migrations applied
 func StubEmbedder() *db.EmbeddingClient         // always returns a fixed zero vector
-func StubImgprocClient() *imgproc.StreamClient  // returns fixture JSON responses
+func StubImgprocClient() *dpf.StreamClient  // returns fixture JSON responses
 func AssertJSON(t *testing.T, got, want string) // JSON equality ignoring key order
 ```
 
@@ -1122,10 +1122,10 @@ if os.Getenv("OLLAMA_URL") == "" {
 - Never block server startup waiting for Ollama. Test availability with a 1-second timeout.
 - Backfill embeddings for NULL rows in a background goroutine after startup.
 
-### imgproc Binary
+### dpf Binary
 
-- Binary path is `./bin/devforge-imgproc` relative to the server binary.
-- If binary is missing or not executable, log a warning but do not crash. Tools that require imgproc return a structured error.
+- Binary path is `./bin/dpf` relative to the server binary.
+- If binary is missing or not executable, log a warning but do not crash. Tools that require dpf return a structured error.
 - `StreamClient` must be goroutine-safe. Use an internal mutex or channel-based queue.
 
 ### Gemini Integration
@@ -1153,17 +1153,17 @@ if os.Getenv("OLLAMA_URL") == "" {
 - [ ] `list_patterns` test covers: domain filter, FTS keyword, semantic mode with stub embedder.
 - [ ] `configure_gemini` test verifies 0600 file permissions on written config.
 - [ ] Embedding client test: unreachable Ollama returns nil within 1.5 seconds.
-- [ ] imgproc tests use stub client — no real binary required to run tests.
+- [ ] dpf tests use stub client — no real binary required to run tests.
 - [ ] Tests requiring live Ollama or Gemini are skipped when env vars absent.
 - [ ] Coverage report generated: `go tool cover -html=coverage.out`.
 
 ### Operations
 
-- [ ] `CGO_ENABLED=1 go build -o bin/dev-forge-mcp ./cmd/dev-forge-mcp/` succeeds.
-- [ ] `CGO_ENABLED=1 go build -o bin/dev-forge ./cmd/dev-forge/` succeeds.
+- [ ] `CGO_ENABLED=1 go build -o bin/devforge-mcp ./cmd/devforge-mcp/` succeeds.
+- [ ] `CGO_ENABLED=1 go build -o bin/devforge ./cmd/devforge/` succeeds.
 - [ ] MCP server responds to `initialize` JSON-RPC call via stdin.
-- [ ] MCP server registered as `dev-forge` in `~/.claude/settings.json`; tools appear in Claude Code.
-- [ ] systemd user service file provided at `deploy/dev-forge-mcp.service`.
+- [ ] MCP server registered as `devforge` in `~/.claude/settings.json`; tools appear in Claude Code.
+- [ ] systemd user service file provided at `deploy/devforge-mcp.service`.
 - [ ] launchd plist file provided at `deploy/com.devforge.mcp.plist`.
 - [ ] `scripts/install.sh` copies binaries to `~/.local/bin/` and sets permissions.
 
@@ -1196,7 +1196,7 @@ if os.Getenv("OLLAMA_URL") == "" {
 - [ ] Seed data loads without errors from `db/seeds/*.sql`.
 - [ ] Embedding backfill goroutine populates NULL embeddings when Ollama is available post-startup.
 
-### imgproc Integration
+### dpf Integration
 
 - [ ] `StreamClient` initializes and keeps process alive across multiple calls.
 - [ ] Missing binary produces a non-fatal warning, not a panic.
@@ -1228,7 +1228,7 @@ if os.Getenv("OLLAMA_URL") == "" {
 |------|---------|----------|-------|
 | Go | ≥ 1.22 | Yes | With CGO support |
 | GCC / Clang | any | Yes | Required by go-libsql CGO |
-| `bin/devforge-imgproc` | pre-built | Yes | Rust binary, already in repo |
+| `bin/dpf` | pre-built | Yes | Rust binary, already in repo |
 | Ollama | ≥ 0.3 | No | For vector search. `ollama pull nomic-embed-text` |
 | Gemini API key | — | No | Only for `generate_ui_image` |
 
@@ -1241,17 +1241,17 @@ On macOS: `xcode-select --install`
 
 ```bash
 # Build both binaries
-CGO_ENABLED=1 go build -o bin/dev-forge-mcp ./cmd/dev-forge-mcp/
-CGO_ENABLED=1 go build -o bin/dev-forge     ./cmd/dev-forge/
+CGO_ENABLED=1 go build -o bin/devforge-mcp ./cmd/devforge-mcp/
+CGO_ENABLED=1 go build -o bin/devforge     ./cmd/devforge/
 
-# Make imgproc executable (first time only)
-chmod +x bin/devforge-imgproc
+# Make dpf executable (first time only)
+chmod +x bin/dpf
 
 # Run all tests
 CGO_ENABLED=1 go test ./...
 ```
 
-Output binaries: `bin/dev-forge-mcp` (MCP server) and `bin/dev-forge` (CLI/TUI).
+Output binaries: `bin/devforge-mcp` (MCP server) and `bin/devforge` (CLI/TUI).
 
 ---
 
@@ -1259,32 +1259,32 @@ Output binaries: `bin/dev-forge-mcp` (MCP server) and `bin/dev-forge` (CLI/TUI).
 
 ```bash
 # Copy binaries to user PATH
-cp bin/dev-forge-mcp  ~/.local/bin/dev-forge-mcp
-cp bin/dev-forge      ~/.local/bin/dev-forge
-cp bin/devforge-imgproc ~/.local/bin/devforge-imgproc
+cp bin/devforge-mcp  ~/.local/bin/devforge-mcp
+cp bin/devforge      ~/.local/bin/devforge
+cp bin/dpf ~/.local/bin/
 
 # Ensure ~/.local/bin is in PATH (add to ~/.bashrc or ~/.zshrc if needed)
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ```
 
-The MCP server looks for `devforge-imgproc` relative to its own binary. If you install system-wide, all three binaries must be in the same directory, or configure the imgproc path explicitly.
+The MCP server looks for `devforge-dpf` relative to its own binary. If you install system-wide, all three binaries must be in the same directory, or configure the dpf path explicitly.
 
 ---
 
 ### Initial Configuration
 
-Config file path: `~/.config/dev-forge/config.json`
+Config file path: `~/.config/devforge/config.json`
 
 ```bash
-mkdir -p ~/.config/dev-forge
-cat > ~/.config/dev-forge/config.json << 'EOF'
+mkdir -p ~/.config/devforge
+cat > ~/.config/devforge/config.json << 'EOF'
 {
   "gemini_api_key": "",
   "ollama_url": "http://localhost:11434",
   "embedding_model": "nomic-embed-text"
 }
 EOF
-chmod 600 ~/.config/dev-forge/config.json
+chmod 600 ~/.config/devforge/config.json
 ```
 
 Leave `gemini_api_key` empty if you don't have one — all other features work without it.
@@ -1312,11 +1312,11 @@ ollama run nomic-embed-text "test"
 ```json
 {
   "mcpServers": {
-    "dev-forge": {
-      "command": "/home/<user>/.local/bin/dev-forge-mcp",
+    "devforge": {
+      "command": "/home/<user>/.local/bin/devforge-mcp",
       "args": [],
       "env": {
-        "DEV_FORGE_CONFIG": "/home/<user>/.config/dev-forge/config.json"
+        "DEV_FORGE_CONFIG": "/home/<user>/.config/devforge/config.json"
       }
     }
   }
@@ -1328,8 +1328,8 @@ ollama run nomic-embed-text "test"
 ```json
 {
   "mcpServers": {
-    "dev-forge": {
-      "command": "dev-forge-mcp",
+    "devforge": {
+      "command": "devforge-mcp",
       "args": [],
       "type": "stdio"
     }
@@ -1350,7 +1350,7 @@ The MCP server uses **stdio transport** — it is launched on demand by the MCP 
 ```bash
 # Test it works standalone (send a JSON-RPC ping via stdin)
 echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{}},"id":1}' \
-  | dev-forge-mcp
+  | devforge-mcp
 ```
 
 The server starts, responds, and exits when stdin closes. The MCP client manages its lifecycle automatically.
@@ -1361,10 +1361,10 @@ The server starts, responds, and exits when stdin closes. The MCP client manages
 
 ```bash
 # Interactive TUI (from any project directory)
-dev-forge
+devforge
 
 # The TUI auto-detects the project stack from the current directory
-cd ~/my-next-project && dev-forge
+cd ~/my-next-project && devforge
 ```
 
 ---
@@ -1375,7 +1375,7 @@ For use cases where you want the server pre-warmed (e.g. to avoid cold-start lat
 
 #### systemd user service (Linux)
 
-Create `~/.config/systemd/user/dev-forge-mcp.service`:
+Create `~/.config/systemd/user/devforge-mcp.service`:
 
 ```ini
 [Unit]
@@ -1384,10 +1384,10 @@ After=default.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/dev-forge-mcp --mode=http --port=7070
+ExecStart=%h/.local/bin/devforge-mcp --mode=http --port=7070
 Restart=on-failure
 RestartSec=5
-Environment=DEV_FORGE_CONFIG=%h/.config/dev-forge/config.json
+Environment=DEV_FORGE_CONFIG=%h/.config/devforge/config.json
 
 [Install]
 WantedBy=default.target
@@ -1396,20 +1396,20 @@ WantedBy=default.target
 ```bash
 # Enable and start
 systemctl --user daemon-reload
-systemctl --user enable dev-forge-mcp
-systemctl --user start  dev-forge-mcp
+systemctl --user enable devforge-mcp
+systemctl --user start  devforge-mcp
 
 # Check status
-systemctl --user status dev-forge-mcp
+systemctl --user status devforge-mcp
 
 # Stop
-systemctl --user stop dev-forge-mcp
+systemctl --user stop devforge-mcp
 
 # Restart
-systemctl --user restart dev-forge-mcp
+systemctl --user restart devforge-mcp
 
 # View logs
-journalctl --user -u dev-forge-mcp -f
+journalctl --user -u devforge-mcp -f
 
 # Enable auto-start on login
 loginctl enable-linger $USER
@@ -1428,19 +1428,19 @@ Create `~/Library/LaunchAgents/com.devforge.mcp.plist`:
   <key>Label</key>             <string>com.devforge.mcp</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/<user>/.local/bin/dev-forge-mcp</string>
+    <string>/Users/<user>/.local/bin/devforge-mcp</string>
     <string>--mode=http</string>
     <string>--port=7070</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>DEV_FORGE_CONFIG</key>
-    <string>/Users/<user>/.config/dev-forge/config.json</string>
+    <string>/Users/<user>/.config/devforge/config.json</string>
   </dict>
   <key>RunAtLoad</key>         <true/>
   <key>KeepAlive</key>         <true/>
-  <key>StandardOutPath</key>   <string>/tmp/dev-forge-mcp.log</string>
-  <key>StandardErrorPath</key> <string>/tmp/dev-forge-mcp.err</string>
+  <key>StandardOutPath</key>   <string>/tmp/devforge-mcp.log</string>
+  <key>StandardErrorPath</key> <string>/tmp/devforge-mcp.err</string>
 </dict>
 </plist>
 ```
@@ -1466,10 +1466,10 @@ launchctl load   ~/Library/LaunchAgents/com.devforge.mcp.plist
 | Scenario | Command |
 |----------|---------|
 | MCP client manages process | Nothing needed — client stops it automatically |
-| Running via systemd | `systemctl --user stop dev-forge-mcp` |
+| Running via systemd | `systemctl --user stop devforge-mcp` |
 | Running via launchd | `launchctl unload ~/Library/LaunchAgents/com.devforge.mcp.plist` |
 | Running manually in terminal | `Ctrl+C` |
-| Full restart after binary update | systemd: `systemctl --user restart dev-forge-mcp` / launchd: unload + load |
+| Full restart after binary update | systemd: `systemctl --user restart devforge-mcp` / launchd: unload + load |
 
 ---
 
@@ -1477,13 +1477,13 @@ launchctl load   ~/Library/LaunchAgents/com.devforge.mcp.plist
 
 ```bash
 # Rebuild
-CGO_ENABLED=1 go build -o bin/dev-forge-mcp ./cmd/dev-forge-mcp/
+CGO_ENABLED=1 go build -o bin/devforge-mcp ./cmd/devforge-mcp/
 
 # Copy to system path
-cp bin/dev-forge-mcp ~/.local/bin/dev-forge-mcp
+cp bin/devforge-mcp ~/.local/bin/devforge-mcp
 
 # Restart service if running
-systemctl --user restart dev-forge-mcp   # Linux
+systemctl --user restart devforge-mcp   # Linux
 # or
 launchctl unload ~/Library/LaunchAgents/com.devforge.mcp.plist
 launchctl load   ~/Library/LaunchAgents/com.devforge.mcp.plist  # macOS

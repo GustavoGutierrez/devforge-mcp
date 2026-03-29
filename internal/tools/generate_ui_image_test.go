@@ -18,6 +18,7 @@ func TestGenerateUIImage_NoAPIKey_ReturnsError(t *testing.T) {
 			OutputPath: "/tmp/test.png",
 		},
 		"", // empty API key
+		"",
 	)
 
 	var errOut map[string]string
@@ -39,6 +40,7 @@ func TestGenerateUIImage_EmptyPrompt_ReturnsError(t *testing.T) {
 			OutputPath: "/tmp/test.png",
 		},
 		"fake-api-key",
+		"",
 	)
 
 	var errOut map[string]string

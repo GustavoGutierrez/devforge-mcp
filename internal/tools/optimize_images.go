@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"dev-forge-mcp/internal/imgproc"
+	"dev-forge-mcp/internal/dpf"
 )
 
 // OptimizeInput represents a single image optimization request.
@@ -47,8 +47,8 @@ func (s *Server) OptimizeImages(ctx context.Context, input OptimizeImagesInput) 
 	if len(input.Inputs) == 0 {
 		return errorJSON("inputs is required and must not be empty")
 	}
-	if s.Imgproc == nil {
-		return errorJSON("imgproc binary not available. Ensure bin/devforge-imgproc is installed and executable.")
+	if s.DPF == nil {
+		return errorJSON("dpf binary not available. Ensure bin/dpf is installed and executable.")
 	}
 
 	var results []OptimizeResult
@@ -68,7 +68,7 @@ func (s *Server) OptimizeImages(ctx context.Context, input OptimizeImagesInput) 
 			formats = []string{"webp"}
 		}
 
-		job := &imgproc.OptimizeJob{
+		job := &dpf.OptimizeJob{
 			Operation: "optimize",
 			Inputs:    []string{item.Path},
 			AlsoWebp:  containsFormat(formats, "webp"),
@@ -79,7 +79,7 @@ func (s *Server) OptimizeImages(ctx context.Context, input OptimizeImagesInput) 
 			job.Quality = &q
 		}
 
-		jobResult, err := s.Imgproc.Execute(job)
+		jobResult, err := s.DPF.Execute(job)
 		if err != nil {
 			results = append(results, OptimizeResult{
 				SourcePath: item.Path,

@@ -4,11 +4,11 @@ After=default.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/dev-forge-mcp
+ExecStart=%h/.local/bin/devforge-mcp
 Restart=on-failure
 RestartSec=5
-Environment=DEV_FORGE_CONFIG=%h/.config/dev-forge/config.json
-WorkingDirectory=%h/.local/share/dev-forge
+Environment=DEV_FORGE_CONFIG=%h/.config/devforge/config.json
+WorkingDirectory=%h/.local/share/devforge
 
 [Install]
 WantedBy=default.target

@@ -5,9 +5,12 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/binary"
 	"encoding/json"
 	"log"
+	"math"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -15,15 +18,16 @@ import (
 
 	"dev-forge-mcp/internal/config"
 	"dev-forge-mcp/internal/db"
-	"dev-forge-mcp/internal/imgproc"
+	"dev-forge-mcp/internal/dpf"
 	"dev-forge-mcp/internal/tools"
 )
 
 // mcpApp holds all server dependencies with hot-reload support.
 type mcpApp struct {
-	srv       *tools.Server
-	mu        sync.RWMutex
-	geminiKey string
+	srv        *tools.Server
+	mu         sync.RWMutex
+	geminiKey  string
+	imageModel string
 }
 
 func (a *mcpApp) getGeminiKey() string {
@@ -38,6 +42,12 @@ func (a *mcpApp) setGeminiKey(key string) {
 	a.geminiKey = key
 }
 
+func (a *mcpApp) getImageModel() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.imageModel
+}
+
 func main() {
 	// 1. Load config
 	cfg, err := config.Load()
@@ -49,11 +59,15 @@ func main() {
 		}
 	}
 
-	// 2. Open DB
-	if err := os.MkdirAll("db", 0755); err != nil {
-		log.Fatalf("failed to create db directory: %v", err)
+	// Resolve paths relative to the executable so the server works regardless of CWD.
+	exeDir, err := executableDir()
+	if err != nil {
+		log.Fatalf("failed to resolve executable directory: %v", err)
 	}
-	database, err := db.Open("file:./db/ui_patterns.db")
+
+	// 2. Open DB
+	dbPath := "file:" + filepath.Join(exeDir, "dev-forge.db")
+	database, err := db.Open(dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
@@ -68,13 +82,13 @@ func main() {
 		log.Printf("ollama not available — embedding disabled, falling back to FTS5")
 	}
 
-	// 4. Initialize StreamClient for imgproc
-	imgprocPath := "./bin/devforge-imgproc"
-	var sc *imgproc.StreamClient
-	sc, err = imgproc.NewStreamClient(imgprocPath)
+	// 4. Initialize StreamClient for dpf (DevPixelForge)
+	dpfPath := filepath.Join(exeDir, "dpf")
+	var sc *dpf.StreamClient
+	sc, err = dpf.NewStreamClient(dpfPath)
 	if err != nil {
-		log.Printf("warning: imgproc binary not available at %s: %v", imgprocPath, err)
-		log.Printf("optimize_images and generate_favicon will return errors")
+		log.Printf("warning: dpf binary not available at %s: %v", dpfPath, err)
+		log.Printf("optimize_images, generate_favicon, and media tools will return errors")
 		sc = nil
 	} else {
 		defer sc.Close()
@@ -84,10 +98,11 @@ func main() {
 	app := &mcpApp{
 		srv: &tools.Server{
 			DB:       database,
-			Imgproc:  sc,
+			DPF:      sc,
 			Embedder: embedder,
 		},
-		geminiKey: cfg.GeminiAPIKey,
+		geminiKey:  cfg.GeminiAPIKey,
+		imageModel: cfg.ImageModel,
 	}
 
 	// 6. Launch embedding backfill if Ollama available
@@ -106,6 +121,20 @@ func main() {
 	if err := mcpserver.ServeStdio(s); err != nil {
 		log.Fatalf("mcp server error: %v", err)
 	}
+}
+
+// executableDir returns the directory that contains the running binary,
+// resolving symlinks so the path is always the real location.
+func executableDir() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(resolved), nil
 }
 
 func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
@@ -237,7 +266,20 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 			Height:     mcp.ParseInt(req, "height", 720),
 			OutputPath: mcp.ParseString(req, "output_path", ""),
 		}
-		return mcp.NewToolResultText(app.srv.GenerateUIImage(ctx, input, app.getGeminiKey())), nil
+		return mcp.NewToolResultText(app.srv.GenerateUIImage(ctx, input, app.getGeminiKey(), app.getImageModel())), nil
+	})
+
+	// ── ui2md ────────────────────────────────────────────────────
+	s.AddTool(mcp.NewTool("ui2md",
+		mcp.WithDescription("Analyze a UI screenshot and generate a Markdown design spec using Gemini vision."),
+		mcp.WithString("image_path", mcp.Required(), mcp.Description("Path to the UI image to analyze")),
+		mcp.WithString("output_dir", mcp.Description("Directory to save the generated markdown (default: same as image)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.UI2MDInput{
+			ImagePath: mcp.ParseString(req, "image_path", ""),
+			OutputDir: mcp.ParseString(req, "output_dir", ""),
+		}
+		return mcp.NewToolResultText(app.srv.UI2MD(ctx, input, app.getGeminiKey(), app.getImageModel())), nil
 	})
 
 	// ── configure_gemini ────────────────────────────────────────
@@ -254,8 +296,9 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 
 	// ── optimize_images ─────────────────────────────────────────
 	s.AddTool(mcp.NewTool("optimize_images",
-		mcp.WithDescription("Optimize and convert images using the Rust imgproc engine."),
-		mcp.WithArray("inputs", mcp.Required(), mcp.Description("Array of image optimization requests")),
+		mcp.WithDescription("Optimize and convert images using the Rust dpf (DevPixelForge) engine."),
+		mcp.WithArray("inputs", mcp.Required(), mcp.Description("Array of image optimization requests"),
+			mcp.Items(map[string]any{"type": "object"})),
 		mcp.WithNumber("parallelism", mcp.Description("Max parallel operations (default 4)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
@@ -276,8 +319,8 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 		mcp.WithDescription("Generate favicon variants (ico, png, svg) from a source image."),
 		mcp.WithString("source_path", mcp.Required(), mcp.Description("Path to source image (PNG or SVG)")),
 		mcp.WithString("background_color", mcp.Description("Hex background color (default #ffffff)")),
-		mcp.WithArray("sizes", mcp.Description("Icon sizes (default [16,32,48,180,192,512])")),
-		mcp.WithArray("formats", mcp.Description("Output formats: ico | png | svg")),
+		mcp.WithArray("sizes", mcp.Description("Icon sizes (default [16,32,48,180,192,512])"), mcp.WithNumberItems()),
+		mcp.WithArray("formats", mcp.Description("Output formats: ico | png | svg"), mcp.WithStringItems()),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
 		input := tools.GenerateFaviconInput{
@@ -304,7 +347,7 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 	s.AddTool(mcp.NewTool("suggest_color_palettes",
 		mcp.WithDescription("Generate named color palette proposals for a given use case and mood."),
 		mcp.WithString("use_case", mcp.Required(), mcp.Description("e.g. 'SaaS dashboard', 'marketing site'")),
-		mcp.WithArray("brand_keywords", mcp.Description("Brand keyword list")),
+		mcp.WithArray("brand_keywords", mcp.Description("Brand keyword list"), mcp.WithStringItems()),
 		mcp.WithString("mood", mcp.Description("e.g. calm | bold | minimal | professional")),
 		mcp.WithNumber("count", mcp.Description("Number of palettes to generate (default 3)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -319,6 +362,169 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 			json.Unmarshal(data, &input.BrandKeywords)
 		}
 		return mcp.NewToolResultText(app.srv.SuggestColorPalettes(ctx, input)), nil
+	})
+
+	// ── Video Tools ────────────────────────────────────────────────
+
+	// video_transcode
+	s.AddTool(mcp.NewTool("video_transcode",
+		mcp.WithDescription("Transcode video to different codec (h264, h265, vp8, vp9, av1)."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input video path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output video path")),
+		mcp.WithString("codec", mcp.Required(), mcp.Description("Target codec: h264, h265, vp8, vp9, av1")),
+		mcp.WithString("bitrate", mcp.Description("Target bitrate (e.g., '2M', '5000k')")),
+		mcp.WithString("preset", mcp.Description("Encoding preset: ultrafast, fast, medium, slow, veryslow")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.VideoTranscodeInput{
+			Input:   mcp.ParseString(req, "input", ""),
+			Output:  mcp.ParseString(req, "output", ""),
+			Codec:   mcp.ParseString(req, "codec", ""),
+			Bitrate: mcp.ParseString(req, "bitrate", ""),
+			Preset:  mcp.ParseString(req, "preset", ""),
+		}
+		return mcp.NewToolResultText(app.srv.VideoTranscode(ctx, input)), nil
+	})
+
+	// video_resize
+	s.AddTool(mcp.NewTool("video_resize",
+		mcp.WithDescription("Resize video while maintaining aspect ratio."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input video path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output video path")),
+		mcp.WithNumber("width", mcp.Description("Target width")),
+		mcp.WithNumber("height", mcp.Description("Target height")),
+		mcp.WithBoolean("maintain_aspect", mcp.Description("Maintain aspect ratio (default true)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.VideoResizeInput{
+			Input:          mcp.ParseString(req, "input", ""),
+			Output:         mcp.ParseString(req, "output", ""),
+			Width:          uint32(mcp.ParseInt(req, "width", 0)),
+			Height:         uint32(mcp.ParseInt(req, "height", 0)),
+			MaintainAspect: mcp.ParseBoolean(req, "maintain_aspect", true),
+		}
+		return mcp.NewToolResultText(app.srv.VideoResize(ctx, input)), nil
+	})
+
+	// video_trim
+	s.AddTool(mcp.NewTool("video_trim",
+		mcp.WithDescription("Extract a time range from video."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input video path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output video path")),
+		mcp.WithNumber("start", mcp.Required(), mcp.Description("Start time in seconds")),
+		mcp.WithNumber("end", mcp.Required(), mcp.Description("End time in seconds")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.VideoTrimInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			Start:  numVal(args, "start", 0),
+			End:    numVal(args, "end", 0),
+		}
+		return mcp.NewToolResultText(app.srv.VideoTrim(ctx, input)), nil
+	})
+
+	// video_thumbnail
+	s.AddTool(mcp.NewTool("video_thumbnail",
+		mcp.WithDescription("Extract a frame as image from video."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input video path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithString("timestamp", mcp.Required(), mcp.Description("Timestamp: '25%' or seconds like '30.5'")),
+		mcp.WithString("format", mcp.Description("Output format: jpeg, png, webp (default jpeg)")),
+		mcp.WithNumber("quality", mcp.Description("Image quality 1-100 (default 85)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.VideoThumbnailInput{
+			Input:     mcp.ParseString(req, "input", ""),
+			Output:    mcp.ParseString(req, "output", ""),
+			Timestamp: mcp.ParseString(req, "timestamp", ""),
+			Format:    mcp.ParseString(req, "format", "jpeg"),
+			Quality:   mcp.ParseInt(req, "quality", 85),
+		}
+		return mcp.NewToolResultText(app.srv.VideoThumbnail(ctx, input)), nil
+	})
+
+	// video_profile
+	s.AddTool(mcp.NewTool("video_profile",
+		mcp.WithDescription("Apply web-optimized encoding profile."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input video path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output video path")),
+		mcp.WithString("profile", mcp.Required(), mcp.Description("Profile: web-low (480p/1M), web-mid (720p/2.5M), web-high (1080p/5M)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.VideoProfileInput{
+			Input:   mcp.ParseString(req, "input", ""),
+			Output:  mcp.ParseString(req, "output", ""),
+			Profile: mcp.ParseString(req, "profile", ""),
+		}
+		return mcp.NewToolResultText(app.srv.VideoProfile(ctx, input)), nil
+	})
+
+	// ── Audio Tools ────────────────────────────────────────────────
+
+	// audio_transcode
+	s.AddTool(mcp.NewTool("audio_transcode",
+		mcp.WithDescription("Convert between audio formats (mp3, aac, opus, vorbis, flac, wav)."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input audio path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output audio path")),
+		mcp.WithString("codec", mcp.Required(), mcp.Description("Target codec: mp3, aac, opus, vorbis, flac, wav")),
+		mcp.WithString("bitrate", mcp.Description("Target bitrate (e.g., '192k')")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.AudioTranscodeInput{
+			Input:   mcp.ParseString(req, "input", ""),
+			Output:  mcp.ParseString(req, "output", ""),
+			Codec:   mcp.ParseString(req, "codec", ""),
+			Bitrate: mcp.ParseString(req, "bitrate", ""),
+		}
+		return mcp.NewToolResultText(app.srv.AudioTranscode(ctx, input)), nil
+	})
+
+	// audio_trim
+	s.AddTool(mcp.NewTool("audio_trim",
+		mcp.WithDescription("Trim audio by timestamps."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input audio path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output audio path")),
+		mcp.WithNumber("start", mcp.Required(), mcp.Description("Start time in seconds")),
+		mcp.WithNumber("end", mcp.Required(), mcp.Description("End time in seconds")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.AudioTrimInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			Start:  numVal(args, "start", 0),
+			End:    numVal(args, "end", 0),
+		}
+		return mcp.NewToolResultText(app.srv.AudioTrim(ctx, input)), nil
+	})
+
+	// audio_normalize
+	s.AddTool(mcp.NewTool("audio_normalize",
+		mcp.WithDescription("Normalize loudness to target LUFS."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input audio path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output audio path")),
+		mcp.WithNumber("target_lufs", mcp.Required(), mcp.Description("Target LUFS (-14 for YouTube, -16 for Spotify, -23 for EBU R128)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.AudioNormalizeInput{
+			Input:      mcp.ParseString(req, "input", ""),
+			Output:     mcp.ParseString(req, "output", ""),
+			TargetLUFS: numVal(args, "target_lufs", -14),
+		}
+		return mcp.NewToolResultText(app.srv.AudioNormalize(ctx, input)), nil
+	})
+
+	// audio_silence_trim
+	s.AddTool(mcp.NewTool("audio_silence_trim",
+		mcp.WithDescription("Remove leading/trailing silence from audio."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input audio path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output audio path")),
+		mcp.WithNumber("threshold_db", mcp.Description("Silence threshold in dB (default -40)")),
+		mcp.WithNumber("min_duration", mcp.Description("Minimum silence duration in seconds (default 0.5)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.AudioSilenceTrimInput{
+			Input:       mcp.ParseString(req, "input", ""),
+			Output:      mcp.ParseString(req, "output", ""),
+			ThresholdDB: numVal(args, "threshold_db", -40),
+			MinDuration: numVal(args, "min_duration", 0.5),
+		}
+		return mcp.NewToolResultText(app.srv.AudioSilenceTrim(ctx, input)), nil
 	})
 }
 
@@ -361,19 +567,12 @@ func backfillEmbeddings(database *sql.DB, embedder *db.EmbeddingClient) {
 				if err != nil || vec == nil {
 					return
 				}
-				// Encode float32 slice to bytes
+				// Encode float32 slice to little-endian bytes
 				buf := make([]byte, len(vec)*4)
 				for i, f := range vec {
-					b := *(*[4]byte)((*[4]byte)(nil))
-					_ = b
-					// Use binary encoding directly
-					bits := uint32(0)
-					_ = bits
-					buf[i*4] = byte(uint32(f))
-					_ = buf
+					binary.LittleEndian.PutUint32(buf[i*4:], math.Float32bits(f))
 				}
-				// Use the encoding from db package logic — skip for backfill stub
-				database.Exec("UPDATE "+tbl+" SET embedding = ? WHERE id = ?", nil, r.id)
+				database.Exec("UPDATE "+tbl+" SET embedding = ? WHERE id = ?", buf, r.id)
 			}()
 		}
 	}
@@ -395,4 +594,21 @@ func strVal(m map[string]interface{}, key string) string {
 		}
 	}
 	return ""
+}
+
+// numVal extracts a number as float64 from a map[string]any.
+func numVal(m map[string]interface{}, key string, fallback float64) float64 {
+	if v, ok := m[key]; ok {
+		switch n := v.(type) {
+		case float64:
+			return n
+		case float32:
+			return float64(n)
+		case int:
+			return float64(n)
+		case int64:
+			return float64(n)
+		}
+	}
+	return fallback
 }

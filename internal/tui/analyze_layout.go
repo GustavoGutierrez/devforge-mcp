@@ -86,7 +86,11 @@ func (m analyzeLayoutModel) Update(msg tea.Msg) (analyzeLayoutModel, tea.Cmd) {
 				m.cssMode = nextCSSMode(m.cssMode)
 			}
 		default:
-			if m.field == 0 && len(msg.String()) == 1 {
+			if msg.Paste {
+				if m.field == 0 {
+					m.filePath += string(msg.Runes)
+				}
+			} else if m.field == 0 && len(msg.String()) == 1 {
 				m.filePath += msg.String()
 			}
 		}

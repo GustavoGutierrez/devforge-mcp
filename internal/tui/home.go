@@ -13,13 +13,26 @@ var menuItems = []string{
 	"Browse architectures",
 	"Analyze layout file",
 	"Generate layout",
-	"Generate UI images",
+	"Generate Image",
 	"Optimize images",
 	"Generate favicon",
+	"Process video",
+	"Process audio",
+	"UI to Markdown",
 	"Explore color palettes",
 	"Settings",
+	"Add Record",
+	"Setup MCP Clients",
+	"About",
 	"Quit",
 }
+
+const asciiLogo = `██████╗ ███████╗██╗   ██╗███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+██╔══██╗██╔════╝██║   ██║██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+██║  ██║█████╗  ██║   ██║█████╗  ██║   ██║██████╔╝██║  ███╗█████╗
+██║  ██║██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
+██████╔╝███████╗ ╚████╔╝ ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+╚═════╝ ╚══════╝  ╚═══╝  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝`
 
 type homeModel struct {
 	cursor   int
@@ -59,16 +72,13 @@ func (m homeModel) Update(msg tea.Msg) (homeModel, tea.Cmd) {
 func (m homeModel) View() string {
 	var b strings.Builder
 
-	header := lipgloss.NewStyle().
-		Bold(true).
+	logo := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("12")).
-		Render("DevForge MCP")
-	subtitle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")).
-		Render("Design acceleration toolkit for AI-assisted development")
+		Render(asciiLogo)
+	b.WriteString(logo + "\n\n")
 
-	b.WriteString(header + "\n")
-	b.WriteString(subtitle + "\n\n")
+	b.WriteString(dimStyle.Render("AI-powered toolkit for design consistency, UI generation, and code acceleration across your stack.") + "\n\n")
+	b.WriteString(helpStyle.Render("↑ ↓  move   Enter  select   Tab  switch field   Esc  go back   q  quit") + "\n\n")
 
 	for i, item := range menuItems {
 		cursor := "  "
@@ -84,9 +94,6 @@ func (m homeModel) View() string {
 		}
 		b.WriteString(line + "\n")
 	}
-
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("↑/↓ navigate • Enter select • q quit"))
 
 	return boxStyle.Render(b.String())
 }

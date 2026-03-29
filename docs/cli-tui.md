@@ -1,11 +1,11 @@
-# CLI/TUI: dev-forge (Go + Bubble Tea) v2
+# CLI/TUI: devforge (Go + Bubble Tea) v2
 
 ## Archivo de configuración
 
 El CLI lee y escribe el mismo archivo compartido con el MCP server:
 
 ```
-~/.config/dev-forge/config.json
+~/.config/devforge/config.json
 ```
 
 Sobreescribible con la variable de entorno `DEV_FORGE_CONFIG`.
@@ -23,8 +23,14 @@ Si el archivo no existe se crea automáticamente al guardar.
    - "Generate UI images"
    - "Optimize images"
    - "Generate favicon"
+   - "Process video"
+   - "Process audio"
+   - "UI to Markdown"
    - "Explore color palettes"
    - **"Settings"**
+   - "Add Record"
+   - "Setup MCP Clients"
+   - "About"
    - "Quit"
 
 2. **Browse patterns / architectures**
@@ -80,7 +86,7 @@ Si el archivo no existe se crea automáticamente al guardar.
    - Permite guardar paletas en la tabla `palettes`.
 
 9. **Settings**
-   - Muestra el estado actual de la configuración (`~/.config/dev-forge/config.json`).
+   - Muestra el estado actual de la configuración (`~/.config/devforge/config.json`).
    - **Gemini API key**
      - Muestra "✓ Configurada" o "✗ No configurada".
      - Campo de texto para ingresar o actualizar el key (input enmascarado).
