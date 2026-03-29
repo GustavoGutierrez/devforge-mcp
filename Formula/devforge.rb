@@ -12,8 +12,9 @@ class Devforge < Formula
 
   def install
     # Create libexec first so we can write into it.
-    (libexec).mkpath
-    # Download directly into libexec so we control extraction completely.
+    libexec.mkpath
+
+    # Download and extract the pre-built bottle into libexec.
     # Homebrew's default extraction strips the top-level dist/ dir.
     system "curl", "-sSL", "--fail",
            "-o", "#{libexec}/brew-bottle.tar.gz",
@@ -23,6 +24,7 @@ class Devforge < Formula
     FileUtils.rm_f "#{libexec}/brew-bottle.tar.gz"
 
     # Create shell wrappers in bin/
+    bin.mkpath
     File.write(bin/"devforge-mcp", <<~WRAPPER)
       #!/bin/sh
       exec "#{libexec}/devforge-mcp" "$@"
@@ -34,5 +36,8 @@ class Devforge < Formula
       exec "#{libexec}/devforge" "$@"
     WRAPPER
     FileUtils.chmod 0755, bin/"devforge"
+
+    # Symlink dpf into bin/ so it's in PATH.
+    bin.install_symlink libexec/"dpf"
   end
 end
