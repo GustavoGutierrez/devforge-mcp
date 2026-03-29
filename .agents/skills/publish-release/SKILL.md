@@ -7,7 +7,7 @@ description: >
   "publicar versión", or "crear release".
 license: Apache-2.0
 metadata:
-  author: gentleman-programming
+  author: GustavoGutierrez
   version: "1.0"
 ---
 
