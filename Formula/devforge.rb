@@ -5,6 +5,8 @@ class Devforge < Formula
   homepage "https://github.com/GustavoGutierrez/devforge-mcp"
   license "GPL-3.0"
 
+  version "1.1.1"
+
   url "https://github.com/GustavoGutierrez/devforge-mcp/releases/download/v#{version}/devforge-#{version}.linux-amd64.tar.gz"
   sha256 "3a14fde60c1ecbe04b09ec98f7dca6410d2ba3cc12208103f96d8675ceff2014"
 
