@@ -37,202 +37,195 @@ env:
 
 jobs:
   # ── Build arm64 bottle ─────────────────────────────────────────────────────
-  build-arm64:
-    name: Build macOS arm64
-    runs-on: macos-14
-    outputs:
-      sha256: ${{ steps.sha256.outputs.sha256 }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-          cache: true
-
-      - name: Download modules (with native libs)
-        run: go mod download
-
-      - name: Read version
-        id: version
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          VERSION="${VERSION#v}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build devforge-mcp (arm64)
-        env:
-          GOOS: darwin
-          GOARCH: arm64
-          CGO_ENABLED: 1
-        run: |
-          CGO_ENABLED=1 go build \
-            -ldflags="-s -w" \
-            -o devforge-mcp \
-            ./cmd/devforge-mcp/
-
-      - name: Build devforge (arm64)
-        env:
-          GOOS: darwin
-          GOARCH: arm64
-          CGO_ENABLED: 1
-        run: |
-          CGO_ENABLED=1 go build \
-            -ldflags="-s -w" \
-            -o devforge \
-            ./cmd/devforge/
-
-      - name: Build dpf (arm64)
-        run: |
-          mkdir -p dist
-          cp devforge-mcp devforge dist/
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          . "$HOME/.cargo/env"
-          # Clone with sufficient depth to reach the tagged commit, then checkout
-          git clone --depth 100 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
-          (cd /tmp/devpixelforge && git fetch --depth=100 origin ${{ env.DPF_SHA }} && git checkout ${{ env.DPF_SHA }})
-          rustup target add aarch64-apple-darwin
-          cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml --target aarch64-apple-darwin
-          cp /tmp/devpixelforge/rust-imgproc/target/aarch64-apple-darwin/release/dpf dist/
-
-      - name: Create bottle archive
-        id: archive
-        run: |
-          ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-arm64.tar.gz"
-          tar -czf "$ARCHIVE" dist/
-          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_OUTPUT
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          files: "${{ steps.archive.outputs.ARCHIVE }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute sha256
-        id: sha256
-        run: |
-          SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA256"
+  # TEMPORARILY DISABLED — macOS builds pending fixes
+  # build-arm64:
+  #   name: Build macOS arm64
+  #   runs-on: macos-14
+  #   outputs:
+  #     sha256: ${{ steps.sha256.outputs.sha256 }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.23"
+  #         cache: true
+  #
+  #     - name: Download modules (with native libs)
+  #       run: go mod download
+  #
+  #     - name: Read version
+  #       id: version
+  #       run: |
+  #         if [ -n "${{ github.event.inputs.version }}" ]; then
+  #           VERSION="${{ github.event.inputs.version }}"
+  #         else
+  #           VERSION="${{ github.ref_name }}"
+  #         fi
+  #         VERSION="${VERSION#v}"
+  #         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+  #         echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
+  #
+  #     - name: Build devforge-mcp (arm64)
+  #       env:
+  #         GOOS: darwin
+  #         GOARCH: arm64
+  #         CGO_ENABLED: 1
+  #       run: |
+  #         CGO_ENABLED=1 go build \
+  #           -ldflags="-s -w" \
+  #           -o devforge-mcp \
+  #           ./cmd/devforge-mcp/
+  #
+  #     - name: Build devforge (arm64)
+  #       env:
+  #         GOOS: darwin
+  #         GOARCH: arm64
+  #         CGO_ENABLED: 1
+  #       run: |
+  #         CGO_ENABLED=1 go build \
+  #           -ldflags="-s -w" \
+  #           -o devforge \
+  #           ./cmd/devforge/
+  #
+  #     - name: Build dpf (arm64)
+  #       run: |
+  #         mkdir -p dist
+  #         cp devforge-mcp devforge dist/
+  #         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+  #         . "$HOME/.cargo/env"
+  #         git clone --depth 100 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+  #         (cd /tmp/devpixelforge && git fetch --depth=100 origin ${{ env.DPF_SHA }} && git checkout ${{ env.DPF_SHA }})
+  #         rustup target add aarch64-apple-darwin
+  #         cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml --target aarch64-apple-darwin
+  #         cp /tmp/devpixelforge/rust-imgproc/target/aarch64-apple-darwin/release/dpf dist/
+  #
+  #     - name: Create bottle archive
+  #       id: archive
+  #       run: |
+  #         ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-arm64.tar.gz"
+  #         tar -czf "$ARCHIVE" dist/
+  #         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_OUTPUT
+  #
+  #     - name: Upload to GitHub Release
+  #       uses: softprops/action-gh-release@v2
+  #       with:
+  #         tag_name: ${{ steps.version.outputs.TAG }}
+  #         files: "${{ steps.archive.outputs.ARCHIVE }}"
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #     - name: Compute sha256
+  #       id: sha256
+  #       run: |
+  #         SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
+  #         echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+  #         echo "sha256=$SHA256"
 
   # ── Build intel bottle ──────────────────────────────────────────────────────
-  build-intel:
-    name: Build macOS intel
-    runs-on: macos-15
-    outputs:
-      sha256: ${{ steps.sha256.outputs.sha256 }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-          cache: true
-
-      - name: Download modules (with native libs)
-        run: go mod download
-
-      - name: Read version
-        id: version
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION="${{ github.ref_name }}"
-          fi
-          VERSION="${VERSION#v}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Install Rust (for dpf and libsql-native builds)
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          . "$HOME/.cargo/env"
-          # Add cross-compilation targets
-          rustup target add x86_64-apple-darwin
-          echo "RUST-installed"
-
-      # go-libsql ships darwin_amd64 native lib only for linux_amd64 (used via Rosetta 2
-      # on darwin_arm64). For native darwin_amd64, we must build from source.
-      # See: https://github.com/tursodatabase/go-libsql — darwin_amd64 lib not in module zip.
-      - name: Build libsql darwin_amd64 native lib from source
-        run: |
-          . "$HOME/.cargo/env"
-          # Clone libsql with sufficient history depth for bindings/c to compile
-          git clone --depth 100 https://github.com/tursodatabase/libsql.git /tmp/libsql
-          (cd /tmp/libsql && git fetch --depth=100 origin ${{ env.LIBSQL_SHA }} && git checkout ${{ env.LIBSQL_SHA }})
-          # Build the sql-experimental crate for darwin_amd64
-          cargo build --release -p sql-experimental --target x86_64-apple-darwin
-          # Copy the native lib to the go-libsql module cache so CGO finds it
-          GO_MOD_DIR=$(go env GOPATH)/pkg/mod/github.com/tursodatabase/go-libsql@*
-          mkdir -p "$GO_MOD_DIR/lib/darwin_amd64"
-          cp target/x86_64-apple-darwin/release/libsql_experimental.a "$GO_MOD_DIR/lib/darwin_amd64/"
-          echo "Native lib installed to $GO_MOD_DIR/lib/darwin_amd64/"
-          ls "$GO_MOD_DIR/lib/darwin_amd64/"
-
-      - name: Build devforge-mcp (intel)
-        env:
-          GOOS: darwin
-          GOARCH: amd64
-          CGO_ENABLED: 1
-        run: |
-          CGO_ENABLED=1 go build \
-            -ldflags="-s -w" \
-            -o devforge-mcp \
-            ./cmd/devforge-mcp/
-
-      - name: Build devforge (intel)
-        env:
-          GOOS: darwin
-          GOARCH: amd64
-          CGO_ENABLED: 1
-        run: |
-          CGO_ENABLED=1 go build \
-            -ldflags="-s -w" \
-            -o devforge \
-            ./cmd/devforge/
-
-      - name: Build dpf (intel)
-        run: |
-          . "$HOME/.cargo/env"
-          mkdir -p dist
-          cp devforge-mcp devforge dist/
-          # Clone with sufficient depth to reach the tagged commit, then checkout
-          git clone --depth 100 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
-          (cd /tmp/devpixelforge && git fetch --depth=100 origin ${{ env.DPF_SHA }} && git checkout ${{ env.DPF_SHA }})
-          cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml
-          cp /tmp/devpixelforge/rust-imgproc/target/release/dpf dist/
-
-      - name: Create bottle archive
-        id: archive
-        run: |
-          ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-intel.tar.gz"
-          tar -czf "$ARCHIVE" dist/
-          echo "ARCHIVE=$ARCHIVE" >> $GITHUB_OUTPUT
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          files: "${{ steps.archive.outputs.ARCHIVE }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute sha256
-        id: sha256
-        run: |
-          SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA256"
+  # TEMPORARILY DISABLED — macOS builds pending fixes
+  # build-intel:
+  #   name: Build macOS intel
+  #   runs-on: macos-15
+  #   outputs:
+  #     sha256: ${{ steps.sha256.outputs.sha256 }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.23"
+  #         cache: true
+  #
+  #     - name: Download modules (with native libs)
+  #       run: go mod download
+  #
+  #     - name: Read version
+  #       id: version
+  #       run: |
+  #         if [ -n "${{ github.event.inputs.version }}" ]; then
+  #           VERSION="${{ github.event.inputs.version }}"
+  #         else
+  #           VERSION="${{ github.ref_name }}"
+  #         fi
+  #         VERSION="${VERSION#v}"
+  #         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+  #         echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
+  #
+  #     - name: Install Rust (for dpf and libsql-native builds)
+  #       run: |
+  #         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+  #         . "$HOME/.cargo/env"
+  #         rustup target add x86_64-apple-darwin
+  #         echo "RUST-installed"
+  #
+  #     - name: Build libsql darwin_amd64 native lib from source
+  #       run: |
+  #         . "$HOME/.cargo/env"
+  #         git clone --depth 100 https://github.com/tursodatabase/libsql.git /tmp/libsql
+  #         (cd /tmp/libsql && git fetch --depth=100 origin ${{ env.LIBSQL_SHA }} && git checkout ${{ env.LIBSQL_SHA }})
+  #         cargo build --release -p sql-experimental --target x86_64-apple-darwin
+  #         GO_MOD_DIR=$(go env GOPATH)/pkg/mod/github.com/tursodatabase/go-libsql@*
+  #         mkdir -p "$GO_MOD_DIR/lib/darwin_amd64"
+  #         cp target/x86_64-apple-darwin/release/libsql_experimental.a "$GO_MOD_DIR/lib/darwin_amd64/"
+  #         echo "Native lib installed to $GO_MOD_DIR/lib/darwin_amd64/"
+  #         ls "$GO_MOD_DIR/lib/darwin_amd64/"
+  #
+  #     - name: Build devforge-mcp (intel)
+  #       env:
+  #         GOOS: darwin
+  #         GOARCH: amd64
+  #         CGO_ENABLED: 1
+  #       run: |
+  #         CGO_ENABLED=1 go build \
+  #           -ldflags="-s -w" \
+  #           -o devforge-mcp \
+  #           ./cmd/devforge-mcp/
+  #
+  #     - name: Build devforge (intel)
+  #       env:
+  #         GOOS: darwin
+  #         GOARCH: amd64
+  #         CGO_ENABLED: 1
+  #       run: |
+  #         CGO_ENABLED=1 go build \
+  #           -ldflags="-s -w" \
+  #           -o devforge \
+  #           ./cmd/devforge/
+  #
+  #     - name: Build dpf (intel)
+  #       run: |
+  #         . "$HOME/.cargo/env"
+  #         mkdir -p dist
+  #         cp devforge-mcp devforge dist/
+  #         git clone --depth 100 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+  #         (cd /tmp/devpixelforge && git fetch --depth=100 origin ${{ env.DPF_SHA }} && git checkout ${{ env.DPF_SHA }})
+  #         cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml
+  #         cp /tmp/devpixelforge/rust-imgproc/target/release/dpf dist/
+  #
+  #     - name: Create bottle archive
+  #       id: archive
+  #       run: |
+  #         ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-intel.tar.gz"
+  #         tar -czf "$ARCHIVE" dist/
+  #         echo "ARCHIVE=$ARCHIVE" >> $GITHUB_OUTPUT
+  #
+  #     - name: Upload to GitHub Release
+  #       uses: softprops/action-gh-release@v2
+  #       with:
+  #         tag_name: ${{ steps.version.outputs.TAG }}
+  #         files: "${{ steps.archive.outputs.ARCHIVE }}"
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #     - name: Compute sha256
+  #       id: sha256
+  #       run: |
+  #         SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
+  #         echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+  #         echo "sha256=$SHA256"
 
   # ── Build Linux bottle ──────────────────────────────────────────────────────
   build-linux:
@@ -303,11 +296,25 @@ jobs:
           echo "ARCHIVE=$ARCHIVE" >> $GITHUB_OUTPUT
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          files: "${{ steps.archive.outputs.ARCHIVE }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCHIVE: ${{ steps.archive.outputs.ARCHIVE }}
+        run: |
+          # Get the upload URL from the existing release, then upload via curl.
+          # Using gh api + curl instead of softprops/action-gh-release because
+          # the action can't update releases created by other workflows.
+          UPLOAD_URL=$(gh api \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "repos/${{ github.repository }}/releases/tags/${{ steps.version.outputs.TAG }}" \
+            --jq '.upload_url | gsub("\\\\{[^}]+\\}"; "")')
+          echo "Upload URL: $UPLOAD_URL"
+          curl -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/gzip" \
+            --data-binary "@$ARCHIVE" \
+            --fail-with-body \
+            "${UPLOAD_URL}?name=${ARCHIVE}"
 
       - name: Compute sha256
         id: sha256
@@ -319,7 +326,7 @@ jobs:
   # ── Update formula ──────────────────────────────────────────────────────────
   update-formula:
     name: Update Homebrew formula
-    needs: [build-arm64, build-intel, build-linux]
+    needs: [build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Determine version
@@ -339,7 +346,7 @@ jobs:
         run: |
           SOURCE_URL="https://github.com/GustavoGutierrez/devforge-mcp/archive/refs/tags/v${{ steps.version.outputs.VERSION }}.tar.gz"
           curl -sSL --fail -o /tmp/source.tar.gz "$SOURCE_URL"
-          SOURCE_SHA256=$(shasum -a 256 /tmp/source.tar.gz | cut -d' ' -f1)
+          SOURCE_SHA256=$(sha256sum /tmp/source.tar.gz | cut -d' ' -f1)
           echo "source_sha256=$SOURCE_SHA256" >> $GITHUB_OUTPUT
           echo "source_sha256=$SOURCE_SHA256"
 
@@ -356,28 +363,6 @@ jobs:
           git pull origin homebrew-tap --ff-only || true
         working-directory: homebrew-tap
 
-      - name: Download arm64 asset
-        id: arm64
-        run: |
-          gh release download v${{ steps.version.outputs.VERSION }} \
-            --pattern "*.macos-arm64.tar.gz" \
-            -D /tmp/arm64/ \
-            --clobber
-          SHA256=$(shasum -a 256 /tmp/arm64/*.macos-arm64.tar.gz | cut -d' ' -f1)
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA256"
-
-      - name: Download intel asset
-        id: intel
-        run: |
-          gh release download v${{ steps.version.outputs.VERSION }} \
-            --pattern "*.macos-intel.tar.gz" \
-            -D /tmp/intel/ \
-            --clobber
-          SHA256=$(shasum -a 256 /tmp/intel/*.macos-intel.tar.gz | cut -d' ' -f1)
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA256"
-
       - name: Download linux asset
         id: linux
         run: |
@@ -393,11 +378,10 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
           TAG: ${{ steps.version.outputs.TAG }}
-          ARM64_SHA256: ${{ needs.build-arm64.outputs.sha256 }}
-          INTEL_SHA256: ${{ needs.build-intel.outputs.sha256 }}
           LINUX_SHA256: ${{ needs.build-linux.outputs.sha256 }}
+          SOURCE_SHA256: ${{ steps.source.outputs.source_sha256 }}
         run: |
-          # Write the formula with placeholder sha256 values.
+          # Write the formula — Linux only (macOS pending build fixes).
           # Single-quoted heredoc prevents shell expansion of Ruby's #{version}.
           cat > Formula/devforge.rb << 'RUBY_EOF'
           # frozen_string_literal: true
@@ -411,17 +395,6 @@ jobs:
             version "#{version}"
             sha256 "SOURCE_PLACEHOLDER"
 
-            if OS.mac?
-              on_macos_sequential do
-                url "https://github.com/GustavoGutierrez/devforge-mcp/releases/download/v#{version}/devforge-#{version}.macos-intel.tar.gz"
-                sha256 "INTEL_PLACEHOLDER"
-              end
-              on_macos_apple do
-                url "https://github.com/GustavoGutierrez/devforge-mcp/releases/download/v#{version}/devforge-#{version}.macos-arm64.tar.gz"
-                sha256 "ARM64_PLACEHOLDER"
-              end
-            end
-
             if OS.linux?
               on_linux do
                 url "https://github.com/GustavoGutierrez/devforge-mcp/releases/download/v#{version}/devforge-#{version}.linux-amd64.tar.gz"
@@ -430,16 +403,11 @@ jobs:
             end
           RUBY_EOF
 
-          # Replace all placeholders with actual sha256 values
           sed -i "s/SOURCE_PLACEHOLDER/${SOURCE_SHA256}/" Formula/devforge.rb
-          sed -i "s/INTEL_PLACEHOLDER/${INTEL_SHA256}/" Formula/devforge.rb
-          sed -i "s/ARM64_PLACEHOLDER/${ARM64_SHA256}/" Formula/devforge.rb
           sed -i "s/LINUX_PLACEHOLDER/${LINUX_SHA256}/" Formula/devforge.rb
 
           echo "Formula updated with sha256:"
           echo "  source: ${SOURCE_SHA256}"
-          echo "  arm64:  ${ARM64_SHA256}"
-          echo "  intel:  ${INTEL_SHA256}"
           echo "  linux:  ${LINUX_SHA256}"
 
       - name: Commit and push
@@ -462,12 +430,10 @@ jobs:
           body: |
             ## Homebrew Bottles — v${{ steps.version.outputs.VERSION }}
 
-            macOS and Linux bottles built and uploaded.
+            Linux bottle built and uploaded.
 
             | Architecture | sha256 |
             |-------------|--------|
-            | arm64 (Apple Silicon) | `${{ needs.build-arm64.outputs.sha256 }}` |
-            | intel (x86_64) | `${{ needs.build-intel.outputs.sha256 }}` |
             | linux (x86_64) | `${{ needs.build-linux.outputs.sha256 }}` |
 
             **After merging, users can install with:**
