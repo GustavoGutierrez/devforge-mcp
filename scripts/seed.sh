@@ -22,7 +22,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-DB_PATH="${PROJECT_DIR}/dist/dev-forge.db"
+DB_PATH="${PROJECT_DIR}/dist/devforge.db"
 OLLAMA_URL="http://localhost:11434"
 OLLAMA_MODEL="nomic-embed-text"
 SEEDS_DIR="${PROJECT_DIR}/db/seeds"

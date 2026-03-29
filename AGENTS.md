@@ -161,6 +161,18 @@ Agents must adapt layout and token suggestions to the declared stack.
 | `optimize_images` | Compress PNG/JPEG and generate WebP variants | `bin/dpf` |
 | `generate_favicon` | Generate a full favicon pack from SVG/PNG | `bin/dpf` |
 | `generate_ui_image` | Generate a UI image via Gemini Vision | `gemini_api_key` in config |
+| `image_crop` | Crop image to specific dimensions | `bin/dpf` |
+| `image_rotate` | Rotate and/or flip an image | `bin/dpf` |
+| `image_watermark` | Add text or image watermark | `bin/dpf` |
+| `image_adjust` | Adjust brightness, contrast, saturation, blur, sharpen | `bin/dpf` |
+| `image_quality` | Optimize to target file size via binary search | `bin/dpf` |
+| `image_srcset` | Generate responsive srcset variants | `bin/dpf` |
+| `image_exif` | Strip, preserve, extract EXIF or auto-orient | `bin/dpf` |
+| `image_resize` | Resize by widths or percentage | `bin/dpf` |
+| `image_convert` | Convert between formats (WebP, AVIF, PNG, JPEG, GIF) | `bin/dpf` |
+| `image_placeholder` | Generate LQIP, dominant color, CSS gradient | `bin/dpf` |
+| `image_palette` | Reduce colors or extract dominant palette | `bin/dpf` |
+| `image_sprite` | Generate sprite sheet with CSS | `bin/dpf` |
 | **Video** |||
 | `video_transcode` | Transcode video to different codec | `bin/dpf` + FFmpeg |
 | `video_resize` | Resize video while maintaining aspect ratio | `bin/dpf` + FFmpeg |
@@ -213,7 +225,14 @@ result, err := sc.Execute(&dpf.ResizeJob{
 | `FaviconJob` | `"favicon"` | Full favicon pack from SVG/PNG |
 | `SpriteJob` | `"sprite"` | Sprite sheet + CSS |
 | `PlaceholderJob` | `"placeholder"` | LQIP, dominant color, CSS gradient |
-| `BatchJob` | `"batch"` | Multiple operations in parallel |
+| `CropJob` | `"crop"` | Crop to specific dimensions |
+| `RotateJob` | `"rotate"` | Rotation and flip operations |
+| `WatermarkJob` | `"watermark"` | Text or image watermarks |
+| `AdjustJob` | `"adjust"` | Brightness, contrast, saturation, blur, sharpen |
+| `QualityJob` | `"quality"` | Binary search for target file size |
+| `SrcsetJob` | `"srcset"` | Responsive srcset variants |
+| `ExifJob` | `"exif"` | EXIF strip/preserve/extract/auto_orient |
+| `PaletteJob` | `"palette"` | Color palette reduction |
 | **Video** |||
 | `VideoTranscodeJob` | `"video_transcode"` | Transcode video to different codec |
 | `VideoResizeJob` | `"video_resize"` | Resize video dimensions |

@@ -66,7 +66,7 @@ func main() {
 	}
 
 	// 2. Open DB
-	dbPath := "file:" + filepath.Join(exeDir, "dev-forge.db")
+	dbPath := "file:" + filepath.Join(exeDir, "devforge.db")
 	database, err := db.Open(dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
@@ -341,6 +341,334 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 			json.Unmarshal(data, &input.Formats)
 		}
 		return mcp.NewToolResultText(app.srv.GenerateFavicon(ctx, input)), nil
+	})
+
+	// ── Image Suite Tools ────────────────────────────────────────
+
+	// image_crop
+	s.AddTool(mcp.NewTool("image_crop",
+		mcp.WithDescription("Crop an image to specific dimensions."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithNumber("x", mcp.Required(), mcp.Description("X coordinate of top-left corner")),
+		mcp.WithNumber("y", mcp.Required(), mcp.Description("Y coordinate of top-left corner")),
+		mcp.WithNumber("width", mcp.Required(), mcp.Description("Crop width in pixels")),
+		mcp.WithNumber("height", mcp.Required(), mcp.Description("Crop height in pixels")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageCropInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			X:      int(numVal(args, "x", 0)),
+			Y:      int(numVal(args, "y", 0)),
+			Width:  int(numVal(args, "width", 0)),
+			Height: int(numVal(args, "height", 0)),
+		}
+		return mcp.NewToolResultText(app.srv.ImageCrop(ctx, input)), nil
+	})
+
+	// image_rotate
+	s.AddTool(mcp.NewTool("image_rotate",
+		mcp.WithDescription("Rotate and/or flip an image."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithNumber("angle", mcp.Description("Rotation angle in degrees (90, 180, 270)")),
+		mcp.WithBoolean("flip_h", mcp.Description("Horizontal flip")),
+		mcp.WithBoolean("flip_v", mcp.Description("Vertical flip")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.ImageRotateInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			Angle:  numVal(argsMap(req), "angle", 0),
+			FlipH:  mcp.ParseBoolean(req, "flip_h", false),
+			FlipV:  mcp.ParseBoolean(req, "flip_v", false),
+		}
+		return mcp.NewToolResultText(app.srv.ImageRotate(ctx, input)), nil
+	})
+
+	// image_watermark
+	s.AddTool(mcp.NewTool("image_watermark",
+		mcp.WithDescription("Add a watermark (text or image) to an image."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithString("text", mcp.Description("Text watermark")),
+		mcp.WithString("image_path", mcp.Description("Image watermark path")),
+		mcp.WithString("position", mcp.Description("Position: center, tile, custom")),
+		mcp.WithNumber("x", mcp.Description("X coordinate for custom position")),
+		mcp.WithNumber("y", mcp.Description("Y coordinate for custom position")),
+		mcp.WithNumber("opacity", mcp.Description("Opacity 0.0-1.0")),
+		mcp.WithNumber("size", mcp.Description("Font size for text watermark")),
+		mcp.WithString("color", mcp.Description("Text color (hex)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageWatermarkInput{
+			Input:     mcp.ParseString(req, "input", ""),
+			Output:    mcp.ParseString(req, "output", ""),
+			Text:      mcp.ParseString(req, "text", ""),
+			ImagePath: mcp.ParseString(req, "image_path", ""),
+			Position:  mcp.ParseString(req, "position", ""),
+			Opacity:   numVal(args, "opacity", 1.0),
+			Color:     mcp.ParseString(req, "color", ""),
+		}
+		if x, ok := args["x"].(float64); ok {
+			xi := int(x)
+			input.X = &xi
+		}
+		if y, ok := args["y"].(float64); ok {
+			yi := int(y)
+			input.Y = &yi
+		}
+		if size, ok := args["size"].(float64); ok {
+			si := int(size)
+			input.Size = &si
+		}
+		return mcp.NewToolResultText(app.srv.ImageWatermark(ctx, input)), nil
+	})
+
+	// image_adjust
+	s.AddTool(mcp.NewTool("image_adjust",
+		mcp.WithDescription("Adjust image properties (brightness, contrast, saturation, blur, sharpen)."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithNumber("brightness", mcp.Description("Brightness adjustment -100 to 100")),
+		mcp.WithNumber("contrast", mcp.Description("Contrast adjustment -100 to 100")),
+		mcp.WithNumber("saturation", mcp.Description("Saturation adjustment -100 to 100")),
+		mcp.WithNumber("blur", mcp.Description("Blur radius in pixels")),
+		mcp.WithNumber("sharpen", mcp.Description("Sharpen amount")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageAdjustInput{
+			Input:      mcp.ParseString(req, "input", ""),
+			Output:     mcp.ParseString(req, "output", ""),
+			Brightness: numVal(args, "brightness", 0),
+			Contrast:   numVal(args, "contrast", 0),
+			Saturation: numVal(args, "saturation", 0),
+			Blur:       numVal(args, "blur", 0),
+			Sharpen:    numVal(args, "sharpen", 0),
+		}
+		return mcp.NewToolResultText(app.srv.ImageAdjust(ctx, input)), nil
+	})
+
+	// image_quality
+	s.AddTool(mcp.NewTool("image_quality",
+		mcp.WithDescription("Optimize image quality to target file size using binary search."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithNumber("target_size_kb", mcp.Required(), mcp.Description("Target file size in KB")),
+		mcp.WithString("format", mcp.Description("Output format: webp, jpeg, png")),
+		mcp.WithNumber("max_quality", mcp.Description("Maximum quality 1-100")),
+		mcp.WithNumber("min_quality", mcp.Description("Minimum quality 1-100")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageQualityInput{
+			Input:        mcp.ParseString(req, "input", ""),
+			Output:       mcp.ParseString(req, "output", ""),
+			TargetSizeKB: int(numVal(args, "target_size_kb", 100)),
+			Format:       mcp.ParseString(req, "format", ""),
+		}
+		if maxQ, ok := args["max_quality"].(float64); ok {
+			mqi := int(maxQ)
+			input.MaxQuality = &mqi
+		}
+		if minQ, ok := args["min_quality"].(float64); ok {
+			mqi := int(minQ)
+			input.MinQuality = &mqi
+		}
+		return mcp.NewToolResultText(app.srv.ImageQuality(ctx, input)), nil
+	})
+
+	// image_srcset
+	s.AddTool(mcp.NewTool("image_srcset",
+		mcp.WithDescription("Generate responsive image variants for srcset attribute."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output_dir", mcp.Required(), mcp.Description("Output directory")),
+		mcp.WithArray("widths", mcp.Description("Target widths (e.g., [320, 640, 960, 1280])"), mcp.WithNumberItems()),
+		mcp.WithArray("sizes", mcp.Description("Sizes attribute values"), mcp.WithStringItems()),
+		mcp.WithString("format", mcp.Description("Output format: webp, jpeg, png")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageSrcsetInput{
+			Input:     mcp.ParseString(req, "input", ""),
+			OutputDir: mcp.ParseString(req, "output_dir", ""),
+			Format:    mcp.ParseString(req, "format", ""),
+		}
+		if widthsRaw, ok := args["widths"]; ok {
+			data, _ := json.Marshal(widthsRaw)
+			json.Unmarshal(data, &input.Widths)
+		}
+		if sizesRaw, ok := args["sizes"]; ok {
+			data, _ := json.Marshal(sizesRaw)
+			json.Unmarshal(data, &input.Sizes)
+		}
+		return mcp.NewToolResultText(app.srv.ImageSrcset(ctx, input)), nil
+	})
+
+	// image_exif
+	s.AddTool(mcp.NewTool("image_exif",
+		mcp.WithDescription("EXIF operations: strip, preserve, extract, or auto-orient."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Description("Output image path (required for strip/preserve)")),
+		mcp.WithString("exif_op", mcp.Required(), mcp.Description("Operation: strip, preserve, extract, auto_orient")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		input := tools.ImageExifInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			ExifOp: mcp.ParseString(req, "exif_op", ""),
+		}
+		return mcp.NewToolResultText(app.srv.ImageExif(ctx, input)), nil
+	})
+
+	// image_resize
+	s.AddTool(mcp.NewTool("image_resize",
+		mcp.WithDescription("Resize an image to multiple widths or by percentage."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output_dir", mcp.Description("Output directory (for width-based resize)")),
+		mcp.WithArray("widths", mcp.Description("Target widths"), mcp.WithNumberItems()),
+		mcp.WithNumber("scale_percent", mcp.Description("Scale by percentage (e.g., 50.0 for half)")),
+		mcp.WithNumber("max_height", mcp.Description("Maximum height constraint")),
+		mcp.WithString("format", mcp.Description("Output format: webp, jpeg, png, avif")),
+		mcp.WithNumber("quality", mcp.Description("Quality 1-100")),
+		mcp.WithString("filter", mcp.Description("Resampling filter: lanczos3, gaussian, bilinear")),
+		mcp.WithBoolean("linear_rgb", mcp.Description("Use linear RGB for better quality")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageResizeInput{
+			Input:     mcp.ParseString(req, "input", ""),
+			OutputDir: mcp.ParseString(req, "output_dir", ""),
+			Format:    mcp.ParseString(req, "format", ""),
+			Filter:    mcp.ParseString(req, "filter", ""),
+			LinearRGB: mcp.ParseBoolean(req, "linear_rgb", false),
+		}
+		if widthsRaw, ok := args["widths"]; ok {
+			data, _ := json.Marshal(widthsRaw)
+			json.Unmarshal(data, &input.Widths)
+		}
+		if sp, ok := args["scale_percent"].(float64); ok {
+			input.ScalePercent = &sp
+		}
+		if mh, ok := args["max_height"].(float64); ok {
+			mhi := int(mh)
+			input.MaxHeight = &mhi
+		}
+		if q, ok := args["quality"].(float64); ok {
+			qi := int(q)
+			input.Quality = &qi
+		}
+		return mcp.NewToolResultText(app.srv.ImageResize(ctx, input)), nil
+	})
+
+	// image_convert
+	s.AddTool(mcp.NewTool("image_convert",
+		mcp.WithDescription("Convert an image to a different format."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output image path")),
+		mcp.WithString("format", mcp.Required(), mcp.Description("Target format: webp, jpeg, png, avif, gif")),
+		mcp.WithNumber("quality", mcp.Description("Quality 1-100")),
+		mcp.WithNumber("width", mcp.Description("Target width")),
+		mcp.WithNumber("height", mcp.Description("Target height")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageConvertInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			Format: mcp.ParseString(req, "format", ""),
+		}
+		if q, ok := args["quality"].(float64); ok {
+			qi := int(q)
+			input.Quality = &qi
+		}
+		if w, ok := args["width"].(float64); ok {
+			wi := int(w)
+			input.Width = &wi
+		}
+		if h, ok := args["height"].(float64); ok {
+			hi := int(h)
+			input.Height = &hi
+		}
+		return mcp.NewToolResultText(app.srv.ImageConvert(ctx, input)), nil
+	})
+
+	// image_placeholder
+	s.AddTool(mcp.NewTool("image_placeholder",
+		mcp.WithDescription("Generate image placeholders (LQIP, dominant color, CSS gradient)."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output", mcp.Description("Optional output path for placeholder")),
+		mcp.WithString("kind", mcp.Description("Placeholder kind: lqip, dominant_color, css_gradient")),
+		mcp.WithNumber("lqip_width", mcp.Description("LQIP width in pixels")),
+		mcp.WithBoolean("inline", mcp.Description("Return base64 data inline")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImagePlaceholderInput{
+			Input:  mcp.ParseString(req, "input", ""),
+			Output: mcp.ParseString(req, "output", ""),
+			Kind:   mcp.ParseString(req, "kind", ""),
+			Inline: mcp.ParseBoolean(req, "inline", false),
+		}
+		if lw, ok := args["lqip_width"].(float64); ok {
+			lwi := int(lw)
+			input.LQIPWidth = &lwi
+		}
+		return mcp.NewToolResultText(app.srv.ImagePlaceholder(ctx, input)), nil
+	})
+
+	// image_palette
+	s.AddTool(mcp.NewTool("image_palette",
+		mcp.WithDescription("Reduce image to a limited color palette or extract dominant colors."),
+		mcp.WithString("input", mcp.Required(), mcp.Description("Input image path")),
+		mcp.WithString("output_dir", mcp.Required(), mcp.Description("Output directory")),
+		mcp.WithNumber("max_colors", mcp.Description("Maximum colors (default 16)")),
+		mcp.WithNumber("dithering", mcp.Description("Dithering amount 0.0-1.0")),
+		mcp.WithString("format", mcp.Description("Output format: gif, png")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImagePaletteInput{
+			Input:     mcp.ParseString(req, "input", ""),
+			OutputDir: mcp.ParseString(req, "output_dir", ""),
+			Format:    mcp.ParseString(req, "format", ""),
+		}
+		if mc, ok := args["max_colors"].(float64); ok {
+			mci := int(mc)
+			input.MaxColors = &mci
+		}
+		if d, ok := args["dithering"].(float64); ok {
+			dithering := float32(d)
+			input.Dithering = &dithering
+		}
+		return mcp.NewToolResultText(app.srv.ImagePalette(ctx, input)), nil
+	})
+
+	// image_sprite
+	s.AddTool(mcp.NewTool("image_sprite",
+		mcp.WithDescription("Generate a sprite sheet from multiple images with optional CSS."),
+		mcp.WithArray("inputs", mcp.Required(), mcp.Description("Input image paths"), mcp.WithStringItems()),
+		mcp.WithString("output", mcp.Required(), mcp.Description("Output sprite path")),
+		mcp.WithNumber("cell_size", mcp.Description("Cell size (width=height)")),
+		mcp.WithNumber("columns", mcp.Description("Number of columns")),
+		mcp.WithNumber("padding", mcp.Description("Padding between sprites in pixels")),
+		mcp.WithBoolean("generate_css", mcp.Description("Generate CSS for sprite positioning")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := argsMap(req)
+		input := tools.ImageSpriteInput{
+			Output:      mcp.ParseString(req, "output", ""),
+			GenerateCSS: mcp.ParseBoolean(req, "generate_css", false),
+		}
+		if inputsRaw, ok := args["inputs"]; ok {
+			data, _ := json.Marshal(inputsRaw)
+			json.Unmarshal(data, &input.Inputs)
+		}
+		if cs, ok := args["cell_size"].(float64); ok {
+			csi := int(cs)
+			input.CellSize = &csi
+		}
+		if col, ok := args["columns"].(float64); ok {
+			coli := int(col)
+			input.Columns = &coli
+		}
+		if p, ok := args["padding"].(float64); ok {
+			pi := int(p)
+			input.Padding = &pi
+		}
+		return mcp.NewToolResultText(app.srv.ImageSprite(ctx, input)), nil
 	})
 
 	// ── suggest_color_palettes ──────────────────────────────────

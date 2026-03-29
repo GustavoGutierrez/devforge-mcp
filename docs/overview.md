@@ -414,6 +414,308 @@ La imagen final es siempre cuadrada — si la fuente no lo es, aplica letterboxi
 
 ---
 
+### `image_resize`
+
+**Propósito**: Redimensiona imágenes a múltiples anchos o por porcentaje.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output_dir": "public/img",
+  "widths": [320, 640, 960, 1280],
+  "format": "webp",
+  "quality": 85,
+  "linear_rgb": true
+}
+```
+
+**Output**:
+
+```json
+{
+  "success": true,
+  "variants": [
+    {"path": "public/img/photo-320.webp", "width": 320, "height": 213, "format": "webp", "size_kb": 18},
+    {"path": "public/img/photo-640.webp", "width": 640, "height": 427, "format": "webp", "size_kb": 45}
+  ],
+  "elapsed_ms": 120
+}
+```
+
+---
+
+### `image_crop`
+
+**Propósito**: Recorta una imagen a dimensiones específicas.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/cropped.jpg",
+  "x": 100,
+  "y": 50,
+  "width": 800,
+  "height": 600
+}
+```
+
+---
+
+### `image_rotate`
+
+**Propósito**: Rota y/o voltea una imagen.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/rotated.jpg",
+  "angle": 90,
+  "flip_h": false,
+  "flip_v": true
+}
+```
+
+---
+
+### `image_watermark`
+
+**Propósito**: Añade una marca de agua (texto o imagen) a una imagen.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/watermarked.jpg",
+  "text": "© 2026 Company",
+  "position": "center",
+  "opacity": 0.5,
+  "color": "#ffffff",
+  "size": 48
+}
+```
+
+---
+
+### `image_adjust`
+
+**Propósito**: Ajusta propiedades de la imagen (brillo, contraste, saturación, blur, sharpen).
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/adjusted.jpg",
+  "brightness": 10,
+  "contrast": 15,
+  "saturation": -10,
+  "blur": 0,
+  "sharpen": 1.5
+}
+```
+
+---
+
+### `image_quality`
+
+**Propósito**: Optimiza calidad de imagen a un tamaño objetivo usando búsqueda binaria.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/optimized.jpg",
+  "target_size_kb": 50,
+  "format": "webp",
+  "max_quality": 95,
+  "min_quality": 30
+}
+```
+
+---
+
+### `image_srcset`
+
+**Propósito**: Genera variantes responsivas para el atributo srcset.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/hero.jpg",
+  "output_dir": "public/img",
+  "widths": [320, 640, 960, 1280, 1920],
+  "sizes": ["100vw", "(min-width: 768px) 50vw"],
+  "format": "webp"
+}
+```
+
+---
+
+### `image_exif`
+
+**Propósito**: Operaciones EXIF (strip, preserve, extract, auto-orient).
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/stripped.jpg",
+  "exif_op": "strip"
+}
+```
+
+Operaciones disponibles:
+- `strip`: Elimina todos los metadatos EXIF
+- `preserve`: Copia la imagen sin modificar EXIF
+- `extract`: Devuelve los datos EXIF en el campo `data`
+- `auto_orient`: Corrige automáticamente la orientación de la imagen
+
+---
+
+### `image_convert`
+
+**Propósito**: Convierte una imagen a otro formato.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.png",
+  "output": "public/img/photo.webp",
+  "format": "webp",
+  "quality": 85,
+  "width": 800,
+  "height": 600
+}
+```
+
+---
+
+### `image_placeholder`
+
+**Propósito**: Genera placeholders de imagen (LQIP, color dominante, gradiente CSS).
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output": "public/img/placeholder.webp",
+  "kind": "lqip",
+  "lqip_width": 20,
+  "inline": true
+}
+```
+
+**Output**:
+
+```json
+{
+  "success": true,
+  "output_path": "public/img/placeholder.webp",
+  "data_base64": "data:image/webp;base64,...",
+  "dominant_color": "#4a90d9",
+  "css_gradient": "linear-gradient(#4a90d9, #2d5a87)"
+}
+```
+
+---
+
+### `image_palette`
+
+**Propósito**: Reduce la paleta de colores o extrae colores dominantes.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "input": "assets/photo.jpg",
+  "output_dir": "public/img",
+  "max_colors": 16,
+  "dithering": 0.5,
+  "format": "gif"
+}
+```
+
+---
+
+### `image_sprite`
+
+**Propósito**: Genera un sprite sheet desde múltiples imágenes con CSS opcional.
+
+**Fichero**: `internal/tools/image_tools.go`
+
+**Requiere**: `bin/dpf` ejecutable.
+
+**Input**:
+
+```json
+{
+  "inputs": ["assets/icon1.png", "assets/icon2.png", "assets/icon3.png"],
+  "output": "public/img/sprites.png",
+  "cell_size": 32,
+  "columns": 3,
+  "padding": 4,
+  "generate_css": true
+}
+```
+
+---
+
 ### `configure_gemini`
 
 **Propósito**: Guarda el API key de Gemini y lo recarga en caliente sin reiniciar el servidor.
