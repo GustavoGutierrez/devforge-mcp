@@ -8,7 +8,7 @@ class Devforge < Formula
   version "1.0.1"
 
   url "https://github.com/GustavoGutierrez/devforge-mcp/releases/download/v#{version}/devforge-#{version}.linux-amd64.tar.gz"
-  sha256 "47eed27d5a44a62bd9c913869419e17c8d24a92b60decff1ac544b0265453026"
+  sha256 "9d646e330cdcaea31ef8633432533c67ba02e2bb9a2b45fb5288e1f30eec2c14"
 
   def install
     # Create libexec first so we can write into it.
