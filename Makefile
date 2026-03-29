@@ -42,7 +42,7 @@ SEED_SCRIPT  := scripts/seed.sh
 .PHONY: build build-mcp build-tui install uninstall dist \
         db-init db-seed db-embeddings seed \
         clean test run tui \
-        build-rust build-rust-static help
+        install-dpf build-rust build-rust-static help
 
 # ── Seed file list (sorted) ─────────────────────────────────────────────────
 SEED_FILES := $(sort $(wildcard $(SEEDS_DIR)/*.sql))
@@ -132,21 +132,29 @@ tui: build-tui
 test:
 	$(GO_TEST) ./...
 
-# ── Rust binary (dpf - DevPixelForge) ─────────────────────────────────────────
+# ── DevPixelForge binary (dpf) ─────────────────────────────────────────────────
+# The Rust source lives in https://github.com/GustavoGutierrez/devpixelforge
+# Use the provided script to download a pre-built release:
 
-## build-rust: Build the dpf Rust binary (dynamic, requires Rust toolchain)
+## install-dpf: Download the latest DevPixelForge release to bin/dpf
+install-dpf:
+	@bash scripts/install-dpf.sh
+
+## install-dpf VERSION: Download a specific DevPixelForge release to bin/dpf
+install-dpf-%:
+	@bash scripts/install-dpf.sh $*
+
+## build-rust: (Deprecated — clone https://github.com/GustavoGutierrez/devpixelforge and use its Makefile)
 build-rust:
-	cd rust-imgproc && cargo build --release
-	cp rust-imgproc/target/release/dpf $(BIN_DIR)/dpf
-	chmod +x $(BIN_DIR)/dpf
-	@echo "Built $(BIN_DIR)/dpf"
+	@echo "The Rust source is no longer in this repository."
+	@echo "Clone devpixelforge: git clone https://github.com/GustavoGutierrez/devpixelforge.git"
+	@echo "Then run 'make build-rust' inside that directory."
 
-## build-rust-static: Build a fully static dpf binary (musl, no system deps)
+## build-rust-static: (Deprecated — clone https://github.com/GustavoGutierrez/devpixelforge and use its Makefile)
 build-rust-static:
-	cd rust-imgproc && cargo build --release --target x86_64-unknown-linux-musl
-	cp rust-imgproc/target/x86_64-unknown-linux-musl/release/dpf $(BIN_DIR)/dpf
-	chmod +x $(BIN_DIR)/dpf
-	@echo "Built static $(BIN_DIR)/dpf"
+	@echo "The Rust source is no longer in this repository."
+	@echo "Clone devpixelforge: git clone https://github.com/GustavoGutierrez/devpixelforge.git"
+	@echo "Then run 'make build-rust-static' inside that directory."
 
 # ── Clean ──────────────────────────────────────────────────────────────────────
 

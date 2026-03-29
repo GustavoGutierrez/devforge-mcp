@@ -7,6 +7,7 @@ This directory contains shell scripts and Go helpers for installing, configuring
 | File / Directory | Purpose |
 |---|---|
 | `install.sh` | Full installation: build, copy binaries, init database, seed, create symlinks |
+| `install-dpf.sh` | Download the DevPixelForge pre-built binary from GitHub releases |
 | `uninstall.sh` | Uninstallation with database backup prompt |
 | `setup-mcp-client.sh` | Interactive configurator for VS Code, Claude Desktop, Claude Code, and OpenCode |
 | `link-skills.sh` | Creates symlinks from `.claude/skills/` to `.agents/skills/` |
@@ -37,6 +38,26 @@ Installs DevForge to `~/.local/share/devforge/versions/<version>/` and creates s
 **Usage:**
 ```bash
 bash scripts/install.sh
+```
+
+---
+
+## install-dpf.sh
+
+Downloads the pre-built DevPixelForge binary from [github.com/GustavoGutierrez/devpixelforge/releases](https://github.com/GustavoGutierrez/devpixelforge/releases) into `bin/dpf`.
+
+**Behavior:**
+- Fetches the latest release tag from the GitHub API if no version is given
+- Uses `curl` if available, falls back to `wget`
+- Places the binary at `bin/dpf` and sets executable permissions
+
+**Usage:**
+```bash
+# Download latest release
+bash scripts/install-dpf.sh
+
+# Download a specific version
+bash scripts/install-dpf.sh 0.2.0
 ```
 
 ---
@@ -176,6 +197,9 @@ CGO_ENABLED=1 go run ./scripts/seed_runner -db ./dist/devforge.db -sql db/seeds/
 ## Dependency Graph
 
 ```
+install-dpf.sh
+  └─→ downloads from https://github.com/GustavoGutierrez/devpixelforge/releases
+
 install.sh
   ├─→ CGO_ENABLED=1 go build ./cmd/devforge-mcp/
   ├─→ CGO_ENABLED=1 go build ./cmd/devforge/

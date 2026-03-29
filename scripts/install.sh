@@ -64,6 +64,7 @@ elif [ -f "${PROJECT_DIR}/bin/dpf" ]; then
     echo -e "  ${GRN}✓${RST} dpf (from bin/)"
 else
     echo -e "  ${YLW}⚠${RST}  dpf not found — media tools unavailable"
+    echo -e "  ${YLW}→${RST}  Run: bash scripts/install-dpf.sh"
 fi
 
 # Copy or initialize database

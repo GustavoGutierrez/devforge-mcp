@@ -37,26 +37,43 @@ cd devforge-mcp
 
 ---
 
-## 2. Ensure the dpf binary is executable
+## 2. Download the DevPixelForge binary
 
-A pre-built Rust binary ships in `bin/dpf`. Make it executable:
+The `dpf` binary (the Rust processing engine for images, video, and audio) is not included in this repository. Choose one method:
+
+### Option A — Download a pre-built release (recommended)
 
 ```bash
-chmod +x bin/dpf
+# Download the latest release
+bash scripts/install-dpf.sh
+
+# Or download a specific version
+bash scripts/install-dpf.sh 0.2.0
 ```
 
-> If you need to recompile from source (requires Rust toolchain and the [DevPixelForge](https://github.com/GustavoGutierrez/devpixelforge) source):
->
-> ```bash
-> # Clone DevPixelForge alongside devforge-mcp
-> git clone https://github.com/GustavoGutierrez/devpixelforge.git
-> cd devpixelforge
-> make build-rust         # dynamic binary
-> # or for a fully static binary:
-> make build-rust-static  # output: target/x86_64-unknown-linux-musl/release/dpf
-> cp target/release/dpf ../devforge-mcp/bin/dpf
-> chmod +x ../devforge-mcp/bin/dpf
-> ```
+This fetches the binary from [github.com/GustavoGutierrez/devpixelforge/releases](https://github.com/GustavoGutierrez/devpixelforge/releases) and places it at `bin/dpf`.
+
+### Option B — Build from source
+
+Requires the Rust toolchain. Clone DevPixelForge alongside devforge-mcp:
+
+```bash
+# Clone DevPixelForge
+git clone https://github.com/GustavoGutierrez/devpixelforge.git
+cd devpixelforge
+
+# Dynamic binary
+make build-rust
+
+# Or fully static binary (no system deps)
+make build-rust-static  # output: target/x86_64-unknown-linux-musl/release/dpf
+
+# Copy to devforge-mcp
+cp target/release/dpf ../devforge-mcp/bin/dpf
+chmod +x ../devforge-mcp/bin/dpf
+```
+
+> The static binary (`build-rust-static`) is recommended for distribution — it has no system library dependencies.
 
 ---
 
