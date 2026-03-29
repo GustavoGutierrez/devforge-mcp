@@ -48,6 +48,9 @@ jobs:
           go-version: "1.23"
           cache: true
 
+      - name: Download modules (with native libs)
+        run: go mod download
+
       - name: Read version
         id: version
         run: |
@@ -88,12 +91,14 @@ jobs:
           cp devforge-mcp devforge dist/
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
           . "$HOME/.cargo/env"
-          git clone --depth 1 --branch v${DPF_VERSION} https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+          git clone --depth 1 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+          (cd /tmp/devpixelforge && git checkout 7987aa01fa2cba830cc467ffd87e7c6cefe5835c)
           rustup target add aarch64-apple-darwin
           cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml --target aarch64-apple-darwin
           cp /tmp/devpixelforge/rust-imgproc/target/aarch64-apple-darwin/release/dpf dist/
 
       - name: Create bottle archive
+        id: archive
         run: |
           ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-arm64.tar.gz"
           tar -czf "$ARCHIVE" dist/
@@ -113,14 +118,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ steps.version.outputs.ARCHIVE }}
-          asset_name: ${{ steps.version.outputs.ARCHIVE }}
+          asset_path: ${{ steps.archive.outputs.ARCHIVE }}
+          asset_name: ${{ steps.archive.outputs.ARCHIVE }}
           asset_content_type: application/gzip
 
       - name: Compute sha256
         id: sha256
         run: |
-          SHA256=$(shasum -a 256 "${{ steps.version.outputs.ARCHIVE }}" | cut -d' ' -f1)
+          SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
           echo "sha256=$SHA256"
 
@@ -139,6 +144,9 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+
+      - name: Download modules (with native libs)
+        run: go mod download
 
       - name: Read version
         id: version
@@ -180,11 +188,13 @@ jobs:
           cp devforge-mcp devforge dist/
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
           . "$HOME/.cargo/env"
-          git clone --depth 1 --branch v${DPF_VERSION} https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+          git clone --depth 1 https://github.com/GustavoGutierrez/devpixelforge.git /tmp/devpixelforge
+          (cd /tmp/devpixelforge && git checkout 7987aa01fa2cba830cc467ffd87e7c6cefe5835c)
           cargo build --release --manifest-path /tmp/devpixelforge/rust-imgproc/Cargo.toml
           cp /tmp/devpixelforge/rust-imgproc/target/release/dpf dist/
 
       - name: Create bottle archive
+        id: archive
         run: |
           ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.macos-intel.tar.gz"
           tar -czf "$ARCHIVE" dist/
@@ -204,14 +214,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ steps.version.outputs.ARCHIVE }}
-          asset_name: ${{ steps.version.outputs.ARCHIVE }}
+          asset_path: ${{ steps.archive.outputs.ARCHIVE }}
+          asset_name: ${{ steps.archive.outputs.ARCHIVE }}
           asset_content_type: application/gzip
 
       - name: Compute sha256
         id: sha256
         run: |
-          SHA256=$(shasum -a 256 "${{ steps.version.outputs.ARCHIVE }}" | cut -d' ' -f1)
+          SHA256=$(shasum -a 256 "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
           echo "sha256=$SHA256"
 
@@ -230,6 +240,9 @@ jobs:
         with:
           go-version: "1.23"
           cache: true
+
+      - name: Download modules (with native libs)
+        run: go mod download
 
       - name: Read version
         id: version
@@ -274,6 +287,7 @@ jobs:
           chmod +x dist/dpf
 
       - name: Create bottle archive
+        id: archive
         run: |
           ARCHIVE="devforge-${{ steps.version.outputs.VERSION }}.linux-amd64.tar.gz"
           tar -czf "$ARCHIVE" dist/
@@ -293,14 +307,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ steps.version.outputs.ARCHIVE }}
-          asset_name: ${{ steps.version.outputs.ARCHIVE }}
+          asset_path: ${{ steps.archive.outputs.ARCHIVE }}
+          asset_name: ${{ steps.archive.outputs.ARCHIVE }}
           asset_content_type: application/gzip
 
       - name: Compute sha256
         id: sha256
         run: |
-          SHA256=$(sha256sum "${{ steps.version.outputs.ARCHIVE }}" | cut -d' ' -f1)
+          SHA256=$(sha256sum "${{ steps.archive.outputs.ARCHIVE }}" | cut -d' ' -f1)
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
           echo "sha256=$SHA256"
 
