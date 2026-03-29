@@ -400,6 +400,8 @@ jobs:
 
       - name: Check if branch exists, create if not
         run: |
+          # Ensure remote URL is set (actions/checkout with path: may not preserve it)
+          git remote set-url origin "https://github.com/${{ github.repository }}.git"
           git checkout homebrew-tap || git checkout -b homebrew-tap
           git pull origin homebrew-tap --ff-only || true
         working-directory: homebrew-tap
