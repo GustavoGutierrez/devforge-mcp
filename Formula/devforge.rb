@@ -14,4 +14,20 @@ class Devforge < Formula
       sha256 "47eed27d5a44a62bd9c913869419e17c8d24a92b60decff1ac544b0265453026"
     end
   end
+
+  def install
+    libexec.install Dir["dist/*"]
+
+    File.write(bin/"devforge-mcp", <<~WRAPPER)
+      #!/bin/sh
+      exec "#{libexec}/devforge-mcp" "$@"
+    WRAPPER
+    FileUtils.chmod 0755, bin/"devforge-mcp"
+
+    File.write(bin/"devforge", <<~WRAPPER)
+      #!/bin/sh
+      exec "#{libexec}/devforge" "$@"
+    WRAPPER
+    FileUtils.chmod 0755, bin/"devforge"
+  end
 end
