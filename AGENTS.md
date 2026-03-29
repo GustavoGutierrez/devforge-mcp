@@ -35,6 +35,21 @@ scripts/                 Install, uninstall, and utility scripts
 
 Skills live in `.agents/skills/` and are symlinked to `.claude/skills/`. Run `./scripts/link-skills.sh` to (re)create symlinks.
 
+### Available Project Skills
+
+| Skill | Description |
+|-------|-------------|
+| `create-agentsmd` | Generate an AGENTS.md file for the repository |
+| `golang-pro` | Idiomatic Go patterns: concurrency, microservices, gRPC, generics |
+| `plantuml-activity` | Generate PlantUML activity diagrams for workflows |
+| `plantuml-architecture` | Generate PlantUML component/deployment diagrams |
+| `plantuml-sequence` | Generate PlantUML sequence diagrams for API flows |
+| `plantuml-state` | Generate PlantUML state diagrams for entity lifecycles |
+| `publish-release` | Step-by-step instructions for creating GitHub + Homebrew releases |
+| `skill-creator` | Create new AI agent skills following the Agent Skills spec |
+| `write-prp` | Write Product Requirement Prompts (PRPs) for features |
+| `writing-markdown` | Write and review Markdown files with technical writing best practices |
+
 ---
 
 ## Build & Run
