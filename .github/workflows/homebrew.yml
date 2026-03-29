@@ -397,6 +397,7 @@ jobs:
           ref: homebrew-tap
           path: homebrew-tap
           fetch-depth: 1
+          set-safe-directory: true
 
       - name: Check if branch exists, create if not
         run: |
@@ -469,9 +470,12 @@ jobs:
           git push origin homebrew-tap
 
       - name: Open PR
+        # Runs inside homebrew-tap/ where .git exists (actions/checkout with path: homebrew-tap)
+        working-directory: homebrew-tap
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          repo: ${{ github.repository }}
           branch: homebrew-tap/update-v${{ steps.version.outputs.VERSION }}
           base: homebrew-tap
           title: "chore(homebrew): update bottles for v${{ steps.version.outputs.VERSION }}"
