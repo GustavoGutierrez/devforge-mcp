@@ -8,7 +8,7 @@ description: >
 license: Apache-2.0
 metadata:
   author: GustavoGutierrez
-  version: "1.2"
+  version: "1.3"
 ---
 
 ## When to Use
@@ -77,6 +77,17 @@ Use the `Edit` tool for each file:
 - `cmd/devforge-mcp/main.go` → version string in `NewMCPServer`
 - `Formula/devforge.rb` → `version "OLD"` → `version "NEW"`
 - `internal/version/version.go` → `const Current = "OLD"` → `const Current = "NEW"`
+
+> ⚠️ **`internal/version/version.go` is the runtime version source of truth.** If skipped, the TUI home badge, about screen, and update checker will report the old version even after a successful install. This is the most commonly forgotten file.
+
+After editing, **verify all 5 references show the new version** before continuing:
+
+```bash
+# Replace X.Y.Z with the new version — all 5 lines must print
+grep -rn "X.Y.Z" VERSION README.md cmd/devforge-mcp/main.go Formula/devforge.rb internal/version/version.go
+```
+
+If any file is missing from the output, update it now. **Do not proceed to Step 3 until all 5 appear.**
 
 ---
 
