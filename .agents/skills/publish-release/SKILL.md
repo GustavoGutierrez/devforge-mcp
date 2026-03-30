@@ -8,7 +8,7 @@ description: >
 license: Apache-2.0
 metadata:
   author: GustavoGutierrez
-  version: "1.3"
+  version: "1.4"
 ---
 
 ## When to Use
@@ -30,7 +30,7 @@ Load this skill when:
 - **`CGO_ENABLED=1` required** — `go build ./...` without it will fail due to `go-sqlite3`.
 - **Release notes must be English Markdown** — no plain text, no other language.
 - **5 files must be updated every release**: `VERSION`, `README.md`, `cmd/devforge-mcp/main.go`, `Formula/devforge.rb`, `internal/version/version.go`.
-- **`Formula/devforge.rb` in `main` needs BOTH `version` AND `sha256` synced after CI.** The CI only updates `homebrew-tap`; the formula on `main` is left with the old sha256 (Step 2 only updates `version`). If not synced, `brew upgrade` will report a checksum mismatch warning. Always run Step 9 after merging the Homebrew PR.
+- **`Formula/devforge.rb` in `main` needs BOTH `version` AND `sha256` synced after CI.** The CI only updates `homebrew-tap`; the formula on `main` is left with the old sha256 (Step 2 only updates `version`). If not synced, `brew upgrade` will report a checksum mismatch warning. **Run Step 9 immediately after CI completes — the sha256 is available on `update-vX.Y.Z` branch before merging the PR.** Do not wait for users to hit the mismatch error.
 
 ---
 
@@ -177,53 +177,53 @@ gh release view vX.Y.Z --repo GustavoGutierrez/devforge-mcp
 gh pr list --repo GustavoGutierrez/devforge-mcp --state open
 ```
 
-Expected: release has `devforge-X.Y.Z.linux-amd64.tar.gz`; PR targets `homebrew-tap`.
+Expected: release has `devforge-X.Y.Z.linux-amd64.tar.gz`; PR `update-vX.Y.Z → homebrew-tap` is open.
 
 ---
 
-### Step 9 — Sync sha256 in main branch formula (MANDATORY)
+### Step 9 — Sync sha256 in main branch formula (MANDATORY — do this BEFORE merging the PR)
 
-After the Homebrew PR (`update-vX.Y.Z` → `homebrew-tap`) is merged, the CI has computed the correct sha256 for the new bottle. You **must** copy it back to `Formula/devforge.rb` on `main`, otherwise `brew upgrade` will print a checksum mismatch warning for all users.
+The CI's `update-formula` job computes the correct sha256 and writes it to the `update-vX.Y.Z` branch. It is available **as soon as the CI workflow completes** — you do not need to wait for the PR to be merged, and you do not need to encounter a `brew install` error to find it.
 
 ```bash
-# 1. Read the correct sha256 from the homebrew-tap branch
-git fetch origin homebrew-tap
-git show origin/homebrew-tap:Formula/devforge.rb | grep sha256
+# 1. Fetch and read the sha256 from the CI branch (available right after Step 7)
+git fetch origin
+git show origin/update-vX.Y.Z:Formula/devforge.rb | grep sha256
 ```
 
-Copy the sha256 value, then update `Formula/devforge.rb` on `main`:
+Copy that value. Then update `Formula/devforge.rb` on `main` using the Edit tool:
 
-```bash
-# 2. Edit the formula on main (use the Edit tool, not sed)
-#    Change: sha256 "OLD_HASH"
-#    To:     sha256 "NEW_HASH_FROM_HOMEBREW_TAP"
+```
+Change: sha256 "OLD_HASH"
+To:     sha256 "NEW_HASH_FROM_CI_BRANCH"
 ```
 
-Also ensure `homebrew-tap` has an explicit `version "X.Y.Z"` field. If the CI dropped it, add it back:
+Also verify `homebrew-tap` will have an explicit `version "X.Y.Z"` field:
 
 ```bash
-git show origin/homebrew-tap:Formula/devforge.rb | grep version
-# If missing, checkout homebrew-tap and add: version "X.Y.Z"
+git show origin/update-vX.Y.Z:Formula/devforge.rb | grep version
+# If missing, add it manually after merging the PR (checkout homebrew-tap, edit, push)
 ```
 
-Commit and push both fixes:
+Commit and push the sha256 fix to main:
 
 ```bash
-# Fix on main
-git checkout main
-# (after editing Formula/devforge.rb with correct sha256)
 git add Formula/devforge.rb
 git commit -m "fix(homebrew): sync sha256 for vX.Y.Z bottle in main branch formula"
 git push origin main
-
-# Fix on homebrew-tap (only if version field was missing)
-git checkout homebrew-tap && git pull origin homebrew-tap
-# (after adding version "X.Y.Z")
-git add Formula/devforge.rb
-git commit -m "fix(homebrew): add explicit version X.Y.Z to tap formula"
-git push origin homebrew-tap
-git checkout main
 ```
+
+> ✅ After this step, `brew install devforge` will pass checksum verification for all users — no mismatch error.
+
+---
+
+### Step 10 — Merge the Homebrew PR
+
+```bash
+gh pr merge update-vX.Y.Z --repo GustavoGutierrez/devforge-mcp --merge
+```
+
+Or merge it via the GitHub UI. The sha256 is already synced to `main`, so this step is safe to do at any time.
 
 ---
 
@@ -260,7 +260,7 @@ gh pr list --repo GustavoGutierrez/devforge-mcp --state open
 [ ] README.md badge updated
 [ ] cmd/devforge-mcp/main.go version string updated
 [ ] internal/version/version.go const Current updated
-[ ] Formula/devforge.rb version updated (sha256 stays old — will be fixed in Step 9)
+[ ] Formula/devforge.rb version updated (sha256 stays old — synced in Step 9)
 [ ] CGO_ENABLED=1 go build ./... passes clean
 [ ] Release notes written in English Markdown
 [ ] Committed: chore(release): bump version to vX.Y.Z
@@ -269,10 +269,10 @@ gh pr list --repo GustavoGutierrez/devforge-mcp --state open
 [ ] All 3 CI jobs passed (prepare-release, build-linux, update-formula)
 [ ] GitHub Release vX.Y.Z exists with linux-amd64.tar.gz asset
 [ ] Homebrew formula PR opened targeting homebrew-tap branch
-[ ] Homebrew formula PR merged
-[ ] sha256 in main/Formula/devforge.rb synced from homebrew-tap (Step 9)
-[ ] version "X.Y.Z" explicit in homebrew-tap/Formula/devforge.rb (Step 9)
-[ ] Pushed sha256 fix to main (and homebrew-tap if needed)
+[ ] sha256 read from origin/update-vX.Y.Z and synced to main/Formula/devforge.rb (Step 9)
+[ ] fix(homebrew): sync sha256 commit pushed to main
+[ ] Homebrew formula PR merged (Step 10)
+[ ] version "X.Y.Z" explicit in homebrew-tap/Formula/devforge.rb (verify after merge)
 ```
 
 ---
@@ -281,7 +281,8 @@ gh pr list --repo GustavoGutierrez/devforge-mcp --state open
 
 | Anti-pattern | Symptom | Fix |
 |---|---|---|
-| Skip Step 9 (sha256 sync) | `brew upgrade` prints "Formula reports different checksum" warning for all users | After Homebrew PR merges, read sha256 from `homebrew-tap`, update `main/Formula/devforge.rb`, commit+push |
+| Sync sha256 after PR merge instead of before | Users hit `Formula reports different checksum` between CI completion and PR merge | Run Step 9 immediately after Step 7 — sha256 is on `origin/update-vX.Y.Z` before the PR is merged |
+| Wait for `brew install` error to find the sha256 | Unnecessary user-facing failure to discover the hash | `git fetch origin && git show origin/update-vX.Y.Z:Formula/devforge.rb \| grep sha256` — available right after CI |
 | CI drops `version` field from `homebrew-tap` formula | Homebrew must infer version from URL — fragile, may mismatch | After Homebrew PR merges, verify `version "X.Y.Z"` is explicit in `homebrew-tap/Formula/devforge.rb`; add if missing |
 | Hardcode sha256 in Step 2 | Wrong sha256 at release time (binary not yet built) | In Step 2, only update `version`; sha256 is computed by CI and synced in Step 9 |
 | Forget to update `internal/version/version.go` | TUI shows wrong version (old version in home badge, about screen, and update checker) | Always include this file in Step 2 — it's the runtime version source of truth for the CLI/TUI |
