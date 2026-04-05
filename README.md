@@ -2,13 +2,12 @@
   <img src="devforge.png" width="1024" height="340" alt="DevForge MCP" />
 </p>
 
-[![Version](https://img.shields.io/badge/version-1.1.6-blue.svg)](https://github.com/GustavoGutierrez/devforge)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/GustavoGutierrez/devforge)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8.svg?logo=go&logoColor=white)](https://golang.org)
 [![MCP](https://img.shields.io/badge/MCP-stdio-8B5CF6.svg?logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-1e1e2e.svg?logo=linux&logoColor=white)](https://github.com/GustavoGutierrez/devforge)
-[![CGO](https://img.shields.io/badge/CGO-required-orange.svg)](https://github.com/GustavoGutierrez/devforge)
-
+[![CGO](https://img.shields.io/badge/CGO-disabled-green.svg)](https://github.com/GustavoGutierrez/devforge)
 
 # DevForge MCP
 
@@ -54,9 +53,11 @@ All three binaries are stateless — no database, no embeddings, no persistent s
 | Group | Tools | Description |
 |-------|-------|-------------|
 | **Design / UI** | `analyze_layout`, `suggest_layout`, `manage_tokens`, `suggest_color_palettes` | Layout analysis, design token planning, color palette generation |
-| **Image Processing** | `optimize_images`, `generate_favicon`, `generate_ui_image`, `ui2md`, `image_resize`, `image_convert`, `image_crop`, `image_watermark`, `image_srcset`, `image_quality`, `image_placeholder`, `markdown_to_pdf` | Optimize, resize, convert, crop, watermark, generate favicons and UI images, export Markdown to PDF |
-| **Video** | `video_transcode`, `video_trim`, `video_thumbnail` | Transcode, trim, extract thumbnails |
-| **Audio** | `audio_normalize`, `audio_transcode`, `audio_trim` | Normalize, transcode, trim audio |
+| **Gemini AI** | `generate_ui_image`, `ui2md`, `configure_gemini` | Generate UI images, convert screenshots to Markdown, configure Gemini API key at runtime |
+| **Image Processing** | `optimize_images`, `generate_favicon`, `image_resize`, `image_convert`, `image_crop`, `image_rotate`, `image_watermark`, `image_adjust`, `image_quality`, `image_srcset`, `image_exif`, `image_placeholder`, `image_palette`, `image_sprite` | Optimize, resize, convert, crop, rotate, watermark, adjust, generate favicons, extract EXIF, generate sprites and srcsets |
+| **Video** | `video_transcode`, `video_resize`, `video_trim`, `video_thumbnail`, `video_profile` | Transcode, resize, trim, extract thumbnails, inspect video profiles |
+| **Audio** | `audio_normalize`, `audio_transcode`, `audio_trim`, `audio_silence_trim` | Normalize, transcode, trim, remove silence from audio |
+| **Document** | `markdown_to_pdf` | Export Markdown to PDF |
 
 > Media tools require `dpf` and FFmpeg. See [Installation](#-installation) for setup details.
 
@@ -95,17 +96,21 @@ brew install GustavoGutierrez/devforge/devforge
 
 This installs all three binaries: `devforge`, `devforge-mcp`, and `dpf`.
 
+To upgrade to the latest version:
+
+```bash
+brew upgrade GustavoGutierrez/devforge/devforge
+```
+
 ### From Source
 
 ```bash
 git clone https://github.com/GustavoGutierrez/devforge.git
 cd devforge
 go build ./...
-chmod +x bin/dpf
-./devforge-mcp
 ```
 
-> Requires Go 1.24+. For media tools, FFmpeg must be available in `\$PATH`.
+> Requires Go 1.24+. CGO is not required. For media tools, `dpf` and FFmpeg must be available in `$PATH`.
 
 Refer to [docs/install.md](docs/install.md) for full setup and MCP client configuration.
 

@@ -4,13 +4,13 @@ class Devforge < Formula
   desc "DevForge CLI, MCP server, and bundled DevPixelForge runtime"
   homepage "https://github.com/GustavoGutierrez/devforge"
   license "GPL-3.0"
-  version "1.1.6"
+  version "2.1.0"
 
   on_linux do
     depends_on arch: :x86_64
 
     url "https://github.com/GustavoGutierrez/devforge/releases/download/v#{version}/devforge_#{version}_linux_amd64.tar.gz"
-    sha256 "09ef00a7c538022f2d1918e6efde8617f3975366a2428c7f223a5c9f80dbb585"
+    sha256 "__LINUX_AMD64_SHA256__"
   end
 
   on_macos do

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing version tag to release or republish (for example v1.1.6)"
+        description: "Existing version tag to release or republish (for example v2.1.0)"
         required: true
         type: string
 
