@@ -25,9 +25,14 @@ error()   { echo -e "${RED}✗${RST} $*" >&2; }
 
 fetch_latest() {
     local tag
+    local curl_args=(-s)
+    # Pass a GitHub token when available to avoid API rate-limiting in CI environments.
+    if [ -n "${GH_TOKEN:-}" ]; then
+        curl_args+=(-H "Authorization: Bearer ${GH_TOKEN}")
+    fi
     # Use python3 to parse JSON — avoids sed portability differences between
     # GNU sed (Linux) and BSD sed (macOS) where \? is not supported as optional.
-    tag=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
+    tag=$(curl "${curl_args[@]}" "https://api.github.com/repos/${REPO}/releases/latest" \
         | python3 -c "import sys, json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))" 2>/dev/null)
     if [ -z "$tag" ]; then
         error "Could not fetch latest release tag from GitHub API."
