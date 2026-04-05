@@ -122,13 +122,13 @@ Homebrew.
 
 **Usage:**
 ```bash
-bash scripts/package_release_bundle.sh --version 1.1.4
+bash scripts/package_release_bundle.sh --version 1.1.5
 ```
 
 Default output:
 
 ```text
-dist/release/devforge_1.1.4_linux_amd64.tar.gz
+dist/release/devforge_1.1.5_linux_amd64.tar.gz
 ```
 
 ---
@@ -142,7 +142,7 @@ bundle checksum placeholders from a release `checksums.txt` file.
 ```bash
 python3 scripts/render_homebrew_formula.py \
   --template packaging/homebrew/Formula/devforge.rb \
-  --version 1.1.4 \
+  --version 1.1.5 \
   --checksums-file dist/release/checksums.txt \
   --output dist/release/devforge.rb
 ```
