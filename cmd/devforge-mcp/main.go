@@ -118,7 +118,7 @@ func main() {
 	}
 
 	// 7. Build MCP server and register all tools
-	s := mcpserver.NewMCPServer("devforge", "1.1.5",
+	s := mcpserver.NewMCPServer("devforge", "1.1.6",
 		mcpserver.WithToolCapabilities(true),
 	)
 

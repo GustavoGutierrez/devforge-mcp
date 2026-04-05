@@ -6,16 +6,22 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 VERSION=""
 OUTPUT_DIR="${PROJECT_DIR}/dist/release"
+TARGET_OS="linux"
+TARGET_ARCH="amd64"
 
 usage() {
   cat <<'EOF'
-Usage: bash scripts/package_release_bundle.sh --version X.Y.Z [--output-dir path]
+Usage: bash scripts/package_release_bundle.sh --version X.Y.Z [--target-os linux|darwin] [--target-arch amd64|arm64] [--output-dir path]
 
-Builds the canonical Linux amd64 DevForge release bundle containing:
+Builds a DevForge runtime bundle containing:
   - devforge
   - devforge-mcp
   - dpf
   - devforge.db
+
+Supported target combinations:
+  - linux/amd64
+  - darwin/arm64
 EOF
 }
 
@@ -27,6 +33,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --output-dir)
       OUTPUT_DIR="$2"
+      shift 2
+      ;;
+    --target-os)
+      TARGET_OS="$2"
+      shift 2
+      ;;
+    --target-arch)
+      TARGET_ARCH="$2"
       shift 2
       ;;
     -h|--help)
@@ -59,14 +73,21 @@ if [ "$CURRENT_VERSION" != "$VERSION" ]; then
   exit 1
 fi
 
-DPF_SOURCE="${PROJECT_DIR}/bin/dpf"
-if [ ! -x "$DPF_SOURCE" ]; then
-  echo "Expected executable dpf binary at ${DPF_SOURCE}. Run bash scripts/install-dpf.sh and chmod +x bin/dpf." >&2
-  exit 1
-fi
+case "${TARGET_OS}/${TARGET_ARCH}" in
+  linux/amd64)
+    PLATFORM_SUFFIX="linux_amd64"
+    ;;
+  darwin/arm64)
+    PLATFORM_SUFFIX="darwin_arm64"
+    ;;
+  *)
+    echo "Unsupported target combination: ${TARGET_OS}/${TARGET_ARCH}" >&2
+    exit 1
+    ;;
+esac
 
-RELEASE_ROOT="${OUTPUT_DIR}/devforge_${VERSION}_linux_amd64"
-ARCHIVE_NAME="devforge_${VERSION}_linux_amd64.tar.gz"
+RELEASE_ROOT="${OUTPUT_DIR}/devforge_${VERSION}_${PLATFORM_SUFFIX}"
+ARCHIVE_NAME="devforge_${VERSION}_${PLATFORM_SUFFIX}.tar.gz"
 ARCHIVE_PATH="${OUTPUT_DIR}/${ARCHIVE_NAME}"
 
 rm -rf "$RELEASE_ROOT"
@@ -75,11 +96,13 @@ mkdir -p "$OUTPUT_DIR"
 
 pushd "$PROJECT_DIR" >/dev/null
 
-CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "${RELEASE_ROOT}/devforge-mcp" ./cmd/devforge-mcp/
-CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o "${RELEASE_ROOT}/devforge" ./cmd/devforge/
+CGO_ENABLED=1 GOOS="${TARGET_OS}" GOARCH="${TARGET_ARCH}" go build -ldflags="-s -w" -o "${RELEASE_ROOT}/devforge-mcp" ./cmd/devforge-mcp/
+CGO_ENABLED=1 GOOS="${TARGET_OS}" GOARCH="${TARGET_ARCH}" go build -ldflags="-s -w" -o "${RELEASE_ROOT}/devforge" ./cmd/devforge/
 
-cp "$DPF_SOURCE" "${RELEASE_ROOT}/dpf"
-chmod +x "${RELEASE_ROOT}/dpf"
+bash scripts/install-dpf.sh \
+  --os "${TARGET_OS}" \
+  --arch "${TARGET_ARCH}" \
+  --output "${RELEASE_ROOT}/dpf"
 
 CGO_ENABLED=1 go run ./scripts/init_db_runner -db "${RELEASE_ROOT}/devforge.db"
 

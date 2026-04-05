@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing version tag to release or republish (for example v1.1.5)"
+        description: "Existing version tag to release or republish (for example v1.1.6)"
         required: true
         type: string
 
@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
 
           test "$(tr -d '[:space:]' < VERSION)" = "${{ steps.meta.outputs.version }}"
-          bash scripts/install-dpf.sh
+          bash scripts/install-dpf.sh --os linux --arch amd64
           test -x bin/dpf
           CGO_ENABLED=1 go test ./...
           ruby -c packaging/homebrew/Formula/devforge.rb
@@ -111,6 +111,8 @@ jobs:
 
           bash scripts/package_release_bundle.sh \
             --version "$VERSION" \
+            --target-os linux \
+            --target-arch amd64 \
             --output-dir "$OUTPUT_DIR"
 
           ARCHIVE_NAME="devforge_${VERSION}_linux_amd64.tar.gz"
