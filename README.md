@@ -40,7 +40,7 @@ DevForge is composed of three standalone binaries that can be used independently
 |--------|------|
 | `devforge-mcp` | MCP stdio server consumed by AI clients (Claude Desktop, Cursor, and any MCP-compatible client). Exposes all tools over the Model Context Protocol. |
 | `devforge` | Interactive CLI/TUI powered by [Bubble Tea](https://github.com/charmbracelet/bubbletea). Provides the same tool surface from the terminal with an ergonomic interface. |
-| `dpf` (DevPixelForge) | Media processing runtime for image, video, audio, and document tools. Requires [FFmpeg](https://ffmpeg.org) available in `\$PATH`. |
+| `dpf` (DevPixelForge) | Media processing runtime for image, video, audio, and document tools. Video/audio tools call [FFmpeg](https://ffmpeg.org) as a subprocess — install it separately only if you need those tools. |
 
 All three binaries are stateless — no database, no embeddings, no persistent state.
 
@@ -59,7 +59,7 @@ All three binaries are stateless — no database, no embeddings, no persistent s
 | **Audio** | `audio_normalize`, `audio_transcode`, `audio_trim`, `audio_silence_trim` | Normalize, transcode, trim, remove silence from audio |
 | **Document** | `markdown_to_pdf` | Export Markdown to PDF |
 
-> Media tools require `dpf` and FFmpeg. See [Installation](#-installation) for setup details.
+> Media tools require `dpf` (bundled). Video and audio tools additionally require FFmpeg in `$PATH` — install with `brew install ffmpeg` if needed.
 
 ---
 
@@ -90,17 +90,18 @@ All 48 tools are documented in [`docs/tools/`](docs/tools/).
 Supported targets: **Linux amd64** and **macOS arm64**.
 
 ```bash
-brew tap GustavoGutierrez/devforge
 brew install GustavoGutierrez/devforge/devforge
 ```
 
-This installs all three binaries: `devforge`, `devforge-mcp`, and `dpf`.
+This installs all three binaries (`devforge`, `devforge-mcp`, `dpf`) and creates a starter config at `~/.config/devforge/config.json`.
 
-To upgrade to the latest version:
+To upgrade to a newer version:
 
 ```bash
-brew upgrade GustavoGutierrez/devforge/devforge
+brew update && brew upgrade gustavogutierrez/devforge/devforge
 ```
+
+> For video/audio tools, FFmpeg is an optional dependency — install separately with `brew install ffmpeg`.
 
 ### From Source
 
