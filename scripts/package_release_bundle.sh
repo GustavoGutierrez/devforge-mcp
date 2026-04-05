@@ -69,6 +69,24 @@ fi
 CURRENT_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
 if [ "$CURRENT_VERSION" != "$VERSION" ]; then
   echo "VERSION file (${CURRENT_VERSION}) does not match requested bundle version (${VERSION})" >&2
+  echo "Run: bash scripts/bump-version.sh ${VERSION}" >&2
+  exit 1
+fi
+
+# Verify all in-code version strings are in sync with VERSION.
+# If any of these fail, run: bash scripts/bump-version.sh ${VERSION}
+VERSION_GO="${PROJECT_DIR}/internal/version/version.go"
+MCP_MAIN="${PROJECT_DIR}/cmd/devforge-mcp/main.go"
+
+if ! grep -q "\"${VERSION}\"" "$VERSION_GO"; then
+  echo "Version mismatch: internal/version/version.go does not contain \"${VERSION}\"" >&2
+  echo "Run: bash scripts/bump-version.sh ${VERSION}" >&2
+  exit 1
+fi
+
+if ! grep -q "\"${VERSION}\"" "$MCP_MAIN"; then
+  echo "Version mismatch: cmd/devforge-mcp/main.go does not contain \"${VERSION}\"" >&2
+  echo "Run: bash scripts/bump-version.sh ${VERSION}" >&2
   exit 1
 fi
 

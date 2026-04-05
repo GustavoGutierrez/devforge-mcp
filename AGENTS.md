@@ -2,46 +2,110 @@
 
 ## Overview
 
-DevForge is a utility-focused Go MCP server and Bubble Tea CLI/TUI. The product is now stateless: no SQLite/libSQL/FTS/vector storage, no Ollama embeddings, and no bundled `devforge.db`.
+Go MCP server (`devforge-mcp`) + Bubble Tea CLI/TUI (`devforge`) providing 70+ stateless developer
+tools over stdio transport. Media tools delegate to **[dpf (DevPixelForge)](https://github.com/GustavoGutierrez/devpixelforge)**,
+a Rust binary bundled in every release. No database, no embeddings, no persistent state.
 
-## Build and test
+## Build & Test
 
 ```bash
-go build ./...
-go test ./...
+go build ./...               # compile all Go binaries
+go test ./...                # run full test suite (CGO disabled)
+bash scripts/install-dpf.sh  # update bin/dpf to latest devpixelforge release
 ```
 
-`dpf` is still required for media tools and should live at `bin/dpf` during local development or next to the installed binaries in packaged releases.
+Requires Go 1.24+. `bin/dpf` must exist locally for media tools to work.
 
-## Key conventions
+## Project Structure
 
-- MCP transport is stdio only.
-- Tool handlers must return structured JSON errors instead of panicking.
-- Config lives at `~/.config/devforge/config.json` or `DEV_FORGE_CONFIG`.
-- Current config fields are `gemini_api_key` and `image_model`.
-- New MCP tools go in `internal/tools/` and must be registered in `cmd/devforge-mcp/`.
-- Keep CLI/TUI coherent with the stateless product direction.
+```
+cmd/devforge/            CLI/TUI entrypoint (Bubble Tea)
+cmd/devforge-mcp/        MCP server — register all tools here (main.go)
+internal/tools/          Tool handlers (one file or subpackage per group)
+internal/dpf/            dpf subprocess client (streaming protocol)
+internal/version/        Version constant: const Current
+scripts/                 Release, packaging, and maintenance scripts
+.agents/skills/          Project-scoped agent skills
+PRPs/                    Product Requirement Prompts — read before implementing features
+VERSION                  Single source of truth for the release version
+```
 
-## Tool surface
+## Code Conventions
 
-Keep and extend stateless utilities, including:
+- MCP transport: **stdio only**. Do not add HTTP or WebSocket.
+- Tool handlers return structured JSON errors — never panic.
+- All tools are **stateless**: no DB writes, no side effects, no persistent state between calls.
+- New tool: add handler in `internal/tools/`, register in `cmd/devforge-mcp/main.go`.
+- Config: `~/.config/devforge/config.json` or `$DEV_FORGE_CONFIG`. Fields: `gemini_api_key`, `image_model`.
+- CGO disabled. No cgo imports anywhere.
+- Idiomatic Go: table-driven tests, errors as values, no global mutable state.
+- Do not reintroduce DB-backed features (stored patterns, embeddings, audit logs) unless explicitly requested.
 
-- layout/design helpers: `analyze_layout`, `suggest_layout`, `manage_tokens`, `suggest_color_palettes`
-- media and document processing via `dpf`
-- text/data/crypto/http/time/file/frontend/backend/code utilities
+## Version Release
 
-Do not reintroduce DB-backed features such as stored patterns, architecture persistence, audits persistence, embeddings, or browse/add-record database UIs unless explicitly requested as a new architectural direction.
+**Always use the bump script** — it updates all 4 locations atomically:
 
-## Release packaging
+```bash
+bash scripts/bump-version.sh X.Y.Z
+```
 
-Release workflow publishes:
+| File | Field |
+|------|-------|
+| `VERSION` | plain-text version (source of truth for CI) |
+| `internal/version/version.go` | `const Current` (TUI version display + update check) |
+| `cmd/devforge-mcp/main.go` | `NewMCPServer` second argument |
+| `README.md` | version badge |
 
-- `devforge_<version>_linux_amd64.tar.gz`
-- `devforge_<version>_darwin_arm64.tar.gz`
-- `checksums.txt`
+`package_release_bundle.sh` fails at build time if any of these are out of sync.
 
-Homebrew formula installs only:
+Then publish:
 
-- `devforge`
-- `devforge-mcp`
-- `dpf`
+```bash
+go test ./...
+git add VERSION internal/version/version.go cmd/devforge-mcp/main.go README.md
+git commit -m "chore: bump to vX.Y.Z"
+git tag vX.Y.Z
+git push origin main && git push origin vX.Y.Z
+```
+
+CI builds Linux amd64 + macOS arm64 bundles, fetches the latest dpf automatically, and updates the
+Homebrew tap. Use `workflow_dispatch` to republish an existing tag without re-tagging.
+
+**Semantic versioning**: `PATCH` for fixes/docs, `MINOR` for new tools, `MAJOR` for breaking changes.
+
+## New Tool Checklist
+
+1. Add handler file or function to `internal/tools/` (or existing subpackage).
+2. Register the tool in `cmd/devforge-mcp/main.go` → `registerTools()`.
+3. Define the MCP tool schema (name, description, input schema) in the same handler file.
+4. Add a table-driven unit test covering happy path and error cases.
+5. Keep the handler stateless and side-effect-free.
+
+## Workflow
+
+- **SDD pipeline**: explore → propose → spec → design → tasks → apply → verify → archive.
+  Load the matching skill with the `skill` tool at each phase.
+- **Conventional commits**: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
+- Read the relevant PRP in `PRPs/` before starting any feature implementation.
+- Use the `publish-release` skill for the full release checklist.
+
+## Available Skills
+
+| Skill | Purpose |
+|-------|---------|
+| `publish-release` | Full release publishing checklist |
+| `write-prp` | Write a Product Requirement Prompt |
+| `golang-pro` | Idiomatic Go patterns, concurrency, generics |
+| `plantuml-architecture` | Component / deployment diagrams |
+| `plantuml-sequence` | Request-response and API flow diagrams |
+| `plantuml-state` | State machine and lifecycle diagrams |
+| `plantuml-activity` | Process and workflow activity diagrams |
+| `writing-markdown` | Write or edit Markdown docs |
+| `skill-creator` | Create a new project-scoped skill |
+| `sdd-explore` `sdd-propose` `sdd-spec` `sdd-design` `sdd-tasks` `sdd-apply` `sdd-verify` `sdd-archive` | SDD pipeline phases |
+
+## Security
+
+- Never commit `~/.config/devforge/config.json` — it contains API keys.
+- Tool handlers must not log secrets from config or request payloads.
+- `dpf` binary path is resolved via `dpf.ResolveBinaryPath()` — do not exec arbitrary paths from user input.
