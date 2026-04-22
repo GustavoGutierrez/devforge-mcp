@@ -927,3 +927,67 @@ func TestFakeData_NestedObjectAutoFormats(t *testing.T) {
 
 	t.Logf("Generated nested: user.name=%v, user.email=%v", user["name"], user["email"])
 }
+
+func TestFakeData_StreetAddressFormat(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"address": { "type": "string", "format": "street_address" },
+			"street": { "type": "string", "format": "street_address" }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object data, got: %T", out.Data)
+	}
+	if data["address"] == nil || data["address"] == "" {
+		t.Error("expected non-empty street_address format value")
+	}
+	if data["street"] == nil || data["street"] == "" {
+		t.Error("expected non-empty street format value")
+	}
+	t.Logf("Generated: address=%v, street=%v", data["address"], data["street"])
+}
+
+func TestFakeData_IntegerMinMaxConstraint(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"age": { "type": "integer", "minimum": 18, "maximum": 65 },
+			"score": { "type": "number", "minimum": 0, "maximum": 100 }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema, Count: 20})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.([]any)
+	if !ok {
+		t.Fatalf("expected array data, got: %T", out.Data)
+	}
+
+	for i, item := range data {
+		record := item.(map[string]any)
+		age := int(record["age"].(float64))
+		score := record["score"].(float64)
+		if age < 18 || age > 65 {
+			t.Errorf("[record %d] age=%d out of range [18,65]", i, age)
+		}
+		if score < 0 || score > 100 {
+			t.Errorf("[record %d] score=%f out of range [0,100]", i, score)
+		}
+	}
+	t.Logf("All %d records respected min/max constraints", len(data))
+}

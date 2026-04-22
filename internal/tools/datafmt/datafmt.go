@@ -906,67 +906,111 @@ type FakeDataOutput struct {
 // fieldNameMap maps common field name patterns to faker method names.
 // Keys are lowercase for case-insensitive matching.
 var fieldNameMap = map[string]string{
-	"name":          "Name",
-	"firstname":     "FirstName",
-	"first_name":    "FirstName",
-	"lastname":      "LastName",
-	"last_name":     "LastName",
-	"fullname":      "FullName",
-	"full_name":     "FullName",
-	"email":         "Email",
-	"emailaddress":  "Email",
-	"phone":         "PhoneNumber",
-	"phonenumber":   "PhoneNumber",
-	"phone_number":  "PhoneNumber",
-	"mobile":        "PhoneNumber",
-	"cellphone":     "PhoneNumber",
-	"address":       "StreetAddress",
-	"streetaddress": "StreetAddress",
-	"streetname":    "StreetName",
-	"street":        "StreetName",
-	"city":          "City",
-	"state":         "State",
-	"province":      "State",
-	"region":        "State",
-	"country":       "Country",
-	"zipcode":       "ZipCode",
-	"zip_code":      "ZipCode",
-	"postalcode":    "ZipCode",
-	"postal_code":   "ZipCode",
-	"company":       "Company",
-	"companyname":   "Company",
-	"company_name":  "Company",
-	"jobtitle":      "JobTitle",
+	"name":           "Name",
+	"firstname":      "FirstName",
+	"first_name":     "FirstName",
+	"lastname":       "LastName",
+	"last_name":      "LastName",
+	"fullname":       "FullName",
+	"full_name":      "FullName",
+	"email":          "Email",
+	"emailaddress":   "Email",
+	"phone":          "PhoneNumber",
+	"phonenumber":    "PhoneNumber",
+	"phone_number":   "PhoneNumber",
+	"mobile":         "PhoneNumber",
+	"cellphone":      "PhoneNumber",
+	"address":        "StreetAddress",
+	"streetaddress":  "StreetAddress",
+	"street_address": "StreetAddress",
+	"streetname":     "StreetAddress",
+	"city":           "City",
+	"state":          "State",
+	"province":       "State",
+	"region":         "State",
+	"country":        "Country",
+	"zipcode":        "ZipCode",
+	"zip_code":       "ZipCode",
+	"postalcode":     "ZipCode",
+	"postal_code":    "ZipCode",
+	"company":        "Company",
+	"companyname":    "Company",
+	"company_name":   "Company",
+	"jobtitle":       "JobTitle",
 	"job_title":     "JobTitle",
-	"title":         "Title",
-	"username":      "Username",
-	"user_name":     "Username",
+	"title":          "Title",
+	"username":       "Username",
+	"user_name":      "Username",
 	"password":      "Password",
-	"url":           "URL",
-	"website":       "URL",
-	"description":   "Sentence",
-	"bio":           "Sentence",
-	"comment":       "Sentence",
-	"content":       "Paragraph",
-	"text":          "Paragraph",
-	"summary":       "Sentence",
-	"observation":  "Sentence",
-	"notes":         "Paragraph",
-	"body":          "Paragraph",
-	"latitude":      "Latitude",
-	"longitude":     "Longitude",
-	"ipv4":          "IPv4Address",
-	"ipv4address":   "IPv4Address",
-	"ipv6":          "IPv6Address",
-	"ipaddress":     "IPv4Address",
-	"macaddress":    "MacAddress",
-	"uuid":          "UUIDHyphenated",
-	"id":            "DigitNumeric",
-	"userid":        "DigitNumeric",
-	"age":           "NumberBetween|1,100",
-	"price":         "Price",
+	"url":            "URL",
+	"website":        "URL",
+	"description":    "Sentence",
+	"bio":            "Sentence",
+	"comment":        "Sentence",
+	"content":        "Paragraph",
+	"text":           "Paragraph",
+	"summary":        "Sentence",
+	"observation":    "Sentence",
+	"notes":          "Paragraph",
+	"body":           "Paragraph",
+	"latitude":       "Latitude",
+	"longitude":      "Longitude",
+	"ipv4":           "IPv4Address",
+	"ipv4address":    "IPv4Address",
+	"ipv6":           "IPv6Address",
+	"ipaddress":      "IPv4Address",
+	"macaddress":     "MacAddress",
+	"uuid":           "UUIDHyphenated",
+	"id":             "DigitNumeric",
+	"userid":         "DigitNumeric",
+	"price":          "Price",
 	"amount":         "Price",
-	"currency":      "CurrencyCode",
+	"currency":       "CurrencyCode",
+}
+
+var formatMap = map[string]string{
+	"name":           "Name",
+	"firstname":      "FirstName",
+	"first_name":     "FirstName",
+	"lastname":       "LastName",
+	"last_name":      "LastName",
+	"fullname":       "FullName",
+	"full_name":      "FullName",
+	"email":          "Email",
+	"phone":          "PhoneNumber",
+	"phonenumber":    "PhoneNumber",
+	"phone_number":   "PhoneNumber",
+	"streetaddress":  "StreetAddress",
+	"street_address": "StreetAddress",
+	"city":           "City",
+	"state":          "State",
+	"country":        "Country",
+	"zipcode":        "ZipCode",
+	"zip_code":       "ZipCode",
+	"postalcode":     "ZipCode",
+	"postal_code":    "ZipCode",
+	"company":        "Company",
+	"jobtitle":       "JobTitle",
+	"job_title":      "JobTitle",
+	"username":       "Username",
+	"password":       "Password",
+	"url":            "URL",
+	"website":        "URL",
+	"sentence":       "Sentence",
+	"paragraph":     "Paragraph",
+	"latitude":       "Latitude",
+	"longitude":      "Longitude",
+	"ipv4":           "IPv4Address",
+	"ipv6":           "IPv6Address",
+	"ipv4address":    "IPv4Address",
+	"ipaddress":      "IPv4Address",
+	"macaddress":     "MacAddress",
+	"uuid":           "UUIDHyphenated",
+	"uuid4":          "UUIDHyphenated",
+	"price":          "Price",
+	"currency":       "CurrencyCode",
+	"currencycode":   "CurrencyCode",
+	"currency_code":  "CurrencyCode",
 }
 
 // normalizeKey converts field names to lowercase and removes separators for matching.
@@ -998,9 +1042,10 @@ func getFakerValue(fieldName string) any {
 		return faker.Email()
 	case "PhoneNumber":
 		return faker.Phonenumber()
+	case "StreetAddress":
+		return faker.GetRealAddress().Address
 	case "StreetName":
-		ra := faker.GetRealAddress()
-		return ra.Address
+		return faker.GetRealAddress().Address
 	case "City":
 		ra := faker.GetRealAddress()
 		return ra.City
@@ -1165,6 +1210,7 @@ func generateValue(fieldName string, prop any) any {
 	}
 
 	schemaType, _ := p["type"].(string)
+	format, _ := p["format"].(string)
 
 	// Handle enum first - must return one of the enum values
 	if enum, ok := p["enum"].([]any); ok && len(enum) > 0 {
@@ -1186,12 +1232,97 @@ func generateValue(fieldName string, prop any) any {
 		return arr
 	}
 
-	// Generate based on field name semantic meaning
+	// Handle integer/number with min/max constraints
+	if schemaType == "integer" || schemaType == "number" {
+		minVal := 0
+		maxVal := 999
+		if min, ok := p["minimum"].(float64); ok {
+			minVal = int(min)
+		}
+		if max, ok := p["maximum"].(float64); ok {
+			maxVal = int(max)
+		}
+		if minVal < maxVal {
+			return minVal + rand.Intn(maxVal-minVal+1)
+		}
+		return minVal
+	}
+
+	// Generate based on field name semantic meaning or format
 	if schemaType == "string" || schemaType == "" {
+		if format != "" {
+			return getFakerValueByFormat(format)
+		}
 		return getFakerValue(fieldName)
 	}
 
 	return getFakerValue(fieldName)
+}
+
+// getFakerValueByFormat resolves format strings (e.g. "email", "street_address") to faker values.
+func getFakerValueByFormat(format string) any {
+	key := normalizeKey(format)
+	methodName := formatMap[key]
+	if methodName == "" {
+		return nil
+	}
+
+	switch methodName {
+	case "Name":
+		return faker.Name()
+	case "FirstName":
+		return faker.FirstName()
+	case "LastName":
+		return faker.LastName()
+	case "FullName":
+		return faker.Name() + " " + faker.LastName()
+	case "Email":
+		return faker.Email()
+	case "PhoneNumber":
+		return faker.Phonenumber()
+	case "StreetAddress":
+		return faker.GetRealAddress().Address
+	case "City":
+		return faker.GetRealAddress().City
+	case "State":
+		return faker.GetRealAddress().State
+	case "Country":
+		return faker.GetCountryInfo().Name
+	case "ZipCode":
+		return faker.GetRealAddress().PostalCode
+	case "Company":
+		return faker.DomainName()
+	case "JobTitle":
+		return faker.TitleMale()
+	case "Username":
+		return faker.Username()
+	case "Password":
+		return faker.Password()
+	case "URL":
+		return faker.URL()
+	case "Sentence":
+		return faker.Sentence()
+	case "Paragraph":
+		return faker.Paragraph()
+	case "Latitude":
+		return faker.Latitude()
+	case "Longitude":
+		return faker.Longitude()
+	case "IPv4Address":
+		return faker.IPv4()
+	case "IPv6Address":
+		return faker.IPv6()
+	case "MacAddress":
+		return faker.MacAddress()
+	case "UUIDHyphenated":
+		return faker.UUIDHyphenated()
+	case "Price":
+		return faker.AmountWithCurrency()
+	case "CurrencyCode":
+		return faker.Currency()
+	default:
+		return nil
+	}
 }
 
 // init seeds the random number generator.
