@@ -10,12 +10,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-faker/faker/v4"
-	"github.com/ryanolee/go-chaff"
 	"gopkg.in/yaml.v3"
 )
 
@@ -1056,84 +1057,8 @@ func getFakerValue(fieldName string) any {
 	}
 }
 
-// applyFieldOverrides walks the generated data and replaces/creates values for known field types.
-// Uses case-insensitive matching for field names.
-func applyFieldOverrides(data map[string]any, schema map[string]any) {
-	properties, _ := schema["properties"].(map[string]any)
-	if properties == nil {
-		return
-	}
-
-	for fieldName := range properties {
-		normalizedKey := normalizeKey(fieldName)
-
-		actualKey := fieldName
-		if _, ok := data[fieldName]; !ok {
-			for k := range data {
-				if normalizeKey(k) == normalizedKey {
-					actualKey = k
-					break
-				}
-			}
-		}
-
-		prop, _ := properties[fieldName].(map[string]any)
-
-		if prop != nil {
-			if nestedSchema, ok := prop["properties"].(map[string]any); ok {
-				if nestedData, ok := data[actualKey].(map[string]any); ok {
-					applyFieldOverrides(nestedData, nestedSchema)
-				}
-			}
-
-			if itemsSchema, ok := prop["items"].(map[string]any); ok {
-				if itemsProps, ok := itemsSchema["properties"].(map[string]any); ok {
-					if arrData, ok := data[actualKey].([]any); ok {
-						for _, item := range arrData {
-							if itemData, ok := item.(map[string]any); ok {
-								applyFieldOverrides(itemData, itemsProps)
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if fakerValue := getFakerValue(actualKey); fakerValue != nil {
-			data[actualKey] = fakerValue
-		}
-	}
-}
-
-// postProcessData applies field-specific overrides to generated data using go-faker.
-func postProcessData(data any, schema string) any {
-	var schemaMap map[string]any
-	json.Unmarshal([]byte(schema), &schemaMap)
-
-	switch v := data.(type) {
-	case map[string]any:
-		if schemaMap != nil {
-			applyFieldOverrides(v, schemaMap)
-		}
-		return v
-	case []any:
-		for i, item := range v {
-			if itemMap, ok := item.(map[string]any); ok {
-				if schemaMap != nil {
-					applyFieldOverrides(itemMap, schemaMap)
-				}
-				v[i] = itemMap
-			}
-		}
-		return v
-	default:
-		return v
-	}
-}
-
 // FakeData generates fake data based on a JSON Schema definition.
-// Uses go-faker for realistic data generation (names, emails, addresses, etc.)
-// and supports the full JSON Schema specification via go-chaff.
+// Uses go-faker for realistic data generation (names, emails, addresses, etc.).
 func FakeData(_ context.Context, input FakeDataInput) string {
 	if strings.TrimSpace(input.Schema) == "" {
 		return errResult("schema is required")
@@ -1147,15 +1072,14 @@ func FakeData(_ context.Context, input FakeDataInput) string {
 		return errResult("count must be between 1 and 100")
 	}
 
-	generator, err := chaff.ParseSchemaStringWithDefaults(input.Schema)
-	if err != nil {
+	var schemaMap map[string]any
+	if err := json.Unmarshal([]byte(input.Schema), &schemaMap); err != nil {
 		return errResult("invalid JSON Schema: " + err.Error())
 	}
 
 	var results []any
 	for i := 0; i < count; i++ {
-		result := generator.GenerateWithDefaults()
-		result = postProcessData(result, input.Schema)
+		result := generateFromSchema(schemaMap)
 		results = append(results, result)
 	}
 
@@ -1170,4 +1094,107 @@ func FakeData(_ context.Context, input FakeDataInput) string {
 		Data:  results,
 		Count: len(results),
 	})
+}
+
+// generateFromSchema generates fake data from a parsed JSON Schema.
+func generateFromSchema(schema map[string]any) any {
+	schemaType, _ := schema["type"].(string)
+	itemsSchema, hasItems := schema["items"].(map[string]any)
+	properties, hasProps := schema["properties"].(map[string]any)
+
+	switch schemaType {
+	case "object":
+		if !hasProps {
+			return map[string]any{}
+		}
+		return generateObject(properties)
+	case "array":
+		minItems := 1
+		maxItems := 5
+		if min, ok := schema["minItems"].(float64); ok {
+			minItems = int(min)
+		}
+		if max, ok := schema["maxItems"].(float64); ok {
+			maxItems = int(max)
+		}
+		count := minItems + rand.Intn(max(maxItems-minItems+1, 1))
+		arr := make([]any, count)
+		for i := 0; i < count; i++ {
+			if hasItems {
+				arr[i] = generateFromSchema(itemsSchema)
+			}
+		}
+		return arr
+	case "string":
+		if enum, ok := schema["enum"].([]any); ok && len(enum) > 0 {
+			return enum[rand.Intn(len(enum))]
+		}
+		return ""
+	case "integer", "number":
+		if enum, ok := schema["enum"].([]any); ok && len(enum) > 0 {
+			return enum[rand.Intn(len(enum))]
+		}
+		if min, ok := schema["minimum"].(float64); ok {
+			if max, ok := schema["maximum"].(float64); ok {
+				return int(min) + rand.Intn(int(max-min)+1)
+			}
+			return int(min) + rand.Intn(100)
+		}
+		return rand.Intn(1000)
+	case "boolean":
+		return rand.Intn(2) == 1
+	}
+
+	return nil
+}
+
+// generateObject generates a fake object from properties schema.
+func generateObject(properties map[string]any) map[string]any {
+	result := make(map[string]any)
+	for name, prop := range properties {
+		result[name] = generateValue(name, prop)
+	}
+	return result
+}
+
+// generateValue generates a fake value based on field name and property schema.
+func generateValue(fieldName string, prop any) any {
+	p, ok := prop.(map[string]any)
+	if !ok {
+		return getFakerValue(fieldName)
+	}
+
+	schemaType, _ := p["type"].(string)
+
+	// Handle enum first - must return one of the enum values
+	if enum, ok := p["enum"].([]any); ok && len(enum) > 0 {
+		return enum[rand.Intn(len(enum))]
+	}
+
+	// Handle nested object
+	if nestedProps, ok := p["properties"].(map[string]any); ok {
+		return generateObject(nestedProps)
+	}
+
+	// Handle array
+	if items, ok := p["items"].(map[string]any); ok {
+		count := 2 + rand.Intn(4)
+		arr := make([]any, count)
+		for i := 0; i < count; i++ {
+			arr[i] = generateValue(fieldName+"_item", items)
+		}
+		return arr
+	}
+
+	// Generate based on field name semantic meaning
+	if schemaType == "string" || schemaType == "" {
+		return getFakerValue(fieldName)
+	}
+
+	return getFakerValue(fieldName)
+}
+
+// init seeds the random number generator.
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
