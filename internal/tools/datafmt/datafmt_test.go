@@ -1038,3 +1038,206 @@ func TestFakeData_IntegerMinMaxConstraint(t *testing.T) {
 	}
 	t.Logf("All %d records respected min/max constraints", len(data))
 }
+
+func TestFakeData_BooleanField(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"isActive": { "type": "boolean" },
+			"isVerified": { "type": "boolean" }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema, Count: 10})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.([]any)
+	if !ok {
+		t.Fatalf("expected array data, got: %T", out.Data)
+	}
+
+	for i, item := range data {
+		record := item.(map[string]any)
+		if record["isActive"] == nil {
+			t.Errorf("[record %d] isActive is nil", i)
+		}
+		if record["isVerified"] == nil {
+			t.Errorf("[record %d] isVerified is nil", i)
+		}
+	}
+	t.Logf("All %d records have boolean values", len(data))
+}
+
+func TestFakeData_AvatarField(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"name": { "type": "string" },
+			"avatar": { "faker": "avatar" },
+			"profilePhoto": { "faker": "image.photo" }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema, Count: 3})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.([]any)
+	if !ok {
+		t.Fatalf("expected array data, got: %T", out.Data)
+	}
+
+	for i, item := range data {
+		record := item.(map[string]any)
+		avatar := record["avatar"].(string)
+		profilePhoto := record["profilePhoto"].(string)
+
+		if !strings.Contains(avatar, "pravatar.cc") {
+			t.Errorf("[record %d] avatar should be pravatar.cc URL, got: %s", i, avatar)
+		}
+		if !strings.Contains(profilePhoto, "picsum.photos") {
+			t.Errorf("[record %d] profilePhoto should be picsum.photos URL, got: %s", i, profilePhoto)
+		}
+		t.Logf("[record %d] avatar=%s profilePhoto=%s", i, avatar, profilePhoto)
+	}
+}
+
+func TestFakeData_ArrayWithFakerItems(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"name": { "type": "string" },
+			"friends": {
+				"type": "array",
+				"items": { "faker": "person.full_name" }
+			},
+			"tags": {
+				"type": "array",
+				"items": { "type": "string", "enum": ["active", "inactive", "pending"] }
+			}
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema, Count: 5})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.([]any)
+	if !ok {
+		t.Fatalf("expected array data, got: %T", out.Data)
+	}
+
+	for i, item := range data {
+		record := item.(map[string]any)
+		friends := record["friends"].([]any)
+		tags := record["tags"].([]any)
+
+		if len(friends) == 0 {
+			t.Errorf("[record %d] friends array is empty", i)
+		}
+		for j, friend := range friends {
+			if friend == nil || friend == "" {
+				t.Errorf("[record %d][friend %d] is nil or empty: %v", i, j, friend)
+			}
+		}
+
+		if len(tags) == 0 {
+			t.Errorf("[record %d] tags array is empty", i)
+		}
+		for j, tag := range tags {
+			if tag == nil || tag == "" {
+				t.Errorf("[record %d][tag %d] is nil or empty: %v", i, j, tag)
+			}
+		}
+		t.Logf("[record %d] friends=%v tags=%v", i, friends, tags)
+	}
+}
+
+func TestFakeData_PicsumImageVariants(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"photo": { "faker": "image.photo" },
+			"photoGray": { "faker": "image.grayscale" },
+			"profilePic": { "faker": "image.avatar" },
+			"photoWebp": { "faker": "image.webp" }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object data, got: %T", out.Data)
+	}
+
+	photo := data["photo"].(string)
+	photoGray := data["photoGray"].(string)
+	profilePic := data["profilePic"].(string)
+	photoWebp := data["photoWebp"].(string)
+
+	if !strings.Contains(photo, "picsum.photos") {
+		t.Errorf("photo should contain picsum.photos: %s", photo)
+	}
+	if !strings.Contains(photoGray, "grayscale") {
+		t.Errorf("photoGray should contain grayscale: %s", photoGray)
+	}
+	if !strings.Contains(profilePic, "pravatar.cc") {
+		t.Errorf("profilePic should contain pravatar.cc: %s", profilePic)
+	}
+	if !strings.Contains(photoWebp, "webp") {
+		t.Errorf("photoWebp should contain webp: %s", photoWebp)
+	}
+
+	t.Logf("photo=%s\nphotoGray=%s\nprofilePic=%s\nphotoWebp=%s", photo, photoGray, profilePic, photoWebp)
+}
+
+func TestFakeData_DateTimeFields(t *testing.T) {
+	ctx := context.Background()
+	schema := `{
+		"type": "object",
+		"properties": {
+			"createdAt": { "faker": "datetime" },
+			"updatedAt": { "faker": "datetime" },
+			"birthDate": { "faker": "date" }
+		}
+	}`
+
+	result := datafmt.FakeData(ctx, datafmt.FakeDataInput{Schema: schema})
+	var out datafmt.FakeDataOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v — got: %s", err, result)
+	}
+
+	data, ok := out.Data.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object data, got: %T", out.Data)
+	}
+
+	if data["createdAt"] == nil || data["createdAt"] == "" {
+		t.Error("createdAt should not be nil or empty")
+	}
+	if data["updatedAt"] == nil || data["updatedAt"] == "" {
+		t.Error("updatedAt should not be nil or empty")
+	}
+	if data["birthDate"] == nil || data["birthDate"] == "" {
+		t.Error("birthDate should not be nil or empty")
+	}
+
+	t.Logf("createdAt=%s updatedAt=%s birthDate=%s", data["createdAt"], data["updatedAt"], data["birthDate"])
+}

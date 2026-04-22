@@ -967,9 +967,17 @@ var fieldNameMap = map[string]string{
 	"uuid":           "UUIDHyphenated",
 	"id":             "DigitNumeric",
 	"userid":         "DigitNumeric",
+	"identifier":     "DigitNumeric",
+	"uid":            "DigitNumeric",
 	"price":          "Price",
 	"amount":         "Price",
 	"currency":       "CurrencyCode",
+	"age":            "NumberBetween|1,120",
+	"avatar":         "Avatar",
+	"photo":          "Avatar",
+	"picture":        "Avatar",
+	"image":          "Avatar",
+	"thumbnail":      "Avatar",
 }
 
 var formatMap = map[string]string{
@@ -1013,10 +1021,18 @@ var formatMap = map[string]string{
 	"macaddress":     "MacAddress",
 	"uuid":           "UUIDHyphenated",
 	"uuid4":          "UUIDHyphenated",
+	"avatar":         "Avatar",
 	"price":          "Price",
+	"amount":         "Price",
 	"currency":       "CurrencyCode",
-	"currencycode":   "CurrencyCode",
-	"currency_code":  "CurrencyCode",
+	"age":            "NumberBetween|1,120",
+	"date":           "Date",
+	"datetime":       "DateTime",
+	"createdat":      "DateTime",
+	"updatedat":      "DateTime",
+	"timestamp":      "DateTime",
+	"isactive":       "Boolean",
+	"isverified":     "Boolean",
 }
 
 // normalizeKey converts field names to lowercase and removes separators for matching.
@@ -1091,6 +1107,8 @@ func getFakerValue(fieldName string) any {
 		return faker.MacAddress()
 	case "UUIDHyphenated":
 		return faker.UUIDHyphenated()
+	case "Avatar":
+		return fmt.Sprintf("https://i.pravatar.cc/150?u=%s", faker.UUIDHyphenated())
 	case "DigitNumeric":
 		return faker.UUIDDigit()
 	case "Price":
@@ -1103,6 +1121,8 @@ func getFakerValue(fieldName string) any {
 			return n[0]
 		}
 		return 1
+	case "Boolean":
+		return rand.Intn(2) == 1
 	default:
 		return nil
 	}
@@ -1172,7 +1192,7 @@ func generateFromSchema(schema map[string]any) any {
 		arr := make([]any, count)
 		for i := 0; i < count; i++ {
 			if hasItems {
-				arr[i] = generateFromSchema(itemsSchema)
+				arr[i] = generateFromSchemaWithFaker(itemsSchema)
 			}
 		}
 		return arr
@@ -1194,6 +1214,72 @@ func generateFromSchema(schema map[string]any) any {
 		return rand.Intn(1000)
 	case "boolean":
 		return rand.Intn(2) == 1
+	}
+
+	// Handle faker attribute at top level
+	if fakerAttr, ok := schema["faker"].(string); ok {
+		return getFakerValueByFakerAttr(fakerAttr)
+	}
+
+	return nil
+}
+
+// generateFromSchemaWithFaker generates fake data from a parsed JSON Schema with faker attribute support.
+func generateFromSchemaWithFaker(schema map[string]any) any {
+	schemaType, _ := schema["type"].(string)
+	itemsSchema, hasItems := schema["items"].(map[string]any)
+	properties, hasProps := schema["properties"].(map[string]any)
+
+	switch schemaType {
+	case "object":
+		if !hasProps {
+			return map[string]any{}
+		}
+		return generateObject(properties)
+	case "array":
+		minItems := 1
+		maxItems := 5
+		if min, ok := schema["minItems"].(float64); ok {
+			minItems = int(min)
+		}
+		if max, ok := schema["maxItems"].(float64); ok {
+			maxItems = int(max)
+		}
+		count := minItems + rand.Intn(max(maxItems-minItems+1, 1))
+		arr := make([]any, count)
+		for i := 0; i < count; i++ {
+			if hasItems {
+				arr[i] = generateFromSchemaWithFaker(itemsSchema)
+			}
+		}
+		return arr
+	case "string":
+		if enum, ok := schema["enum"].([]any); ok && len(enum) > 0 {
+			return enum[rand.Intn(len(enum))]
+		}
+		// Check faker attribute for string type
+		if fakerAttr, ok := schema["faker"].(string); ok {
+			return getFakerValueByFakerAttr(fakerAttr)
+		}
+		return ""
+	case "integer", "number":
+		if enum, ok := schema["enum"].([]any); ok && len(enum) > 0 {
+			return enum[rand.Intn(len(enum))]
+		}
+		if min, ok := schema["minimum"].(float64); ok {
+			if max, ok := schema["maximum"].(float64); ok {
+				return int(min) + rand.Intn(int(max-min)+1)
+			}
+			return int(min) + rand.Intn(100)
+		}
+		return rand.Intn(1000)
+	case "boolean":
+		return rand.Intn(2) == 1
+	}
+
+	// Handle faker attribute at top level
+	if fakerAttr, ok := schema["faker"].(string); ok {
+		return getFakerValueByFakerAttr(fakerAttr)
 	}
 
 	return nil
@@ -1235,7 +1321,6 @@ func generateValue(fieldName string, prop any) any {
 	}
 
 	schemaType, _ := p["type"].(string)
-	format, _ := p["format"].(string)
 
 	// Handle enum first - must return one of the enum values
 	if enum, ok := p["enum"].([]any); ok && len(enum) > 0 {
@@ -1257,24 +1342,24 @@ func generateValue(fieldName string, prop any) any {
 		return arr
 	}
 
-	// Handle integer/number with min/max constraints
-	if schemaType == "integer" || schemaType == "number" {
-		minVal := 0
-		maxVal := 999
-		if min, ok := p["minimum"].(float64); ok {
-			minVal = int(min)
-		}
-		if max, ok := p["maximum"].(float64); ok {
-			maxVal = int(max)
-		}
-		if minVal < maxVal {
-			return minVal + rand.Intn(maxVal-minVal+1)
-		}
-		return minVal
+	// Handle faker attribute (e.g., items with faker: "person.full_name")
+	if fakerAttr, ok := p["faker"].(string); ok {
+		return getFakerValueByFakerAttr(fakerAttr)
 	}
 
-	// Generate based on field name semantic meaning or format
+	// Handle boolean - check schemaType BEFORE checking format
+	if schemaType == "boolean" {
+		return rand.Intn(2) == 1
+	}
+
+	// Handle integer/number with semantic field name mapping or min/max constraints
+	if schemaType == "integer" || schemaType == "number" {
+		return generateInteger(fieldName, p)
+	}
+
+	// Handle string by format or field name
 	if schemaType == "string" || schemaType == "" {
+		format, _ := p["format"].(string)
 		if format != "" {
 			return getFakerValueByFormat(format)
 		}
@@ -1282,6 +1367,35 @@ func generateValue(fieldName string, prop any) any {
 	}
 
 	return getFakerValue(fieldName)
+}
+
+// generateInteger generates a fake integer using field name mapping or min/max constraints.
+func generateInteger(fieldName string, p map[string]any) any {
+	methodName := fieldNameMap[normalizeKey(fieldName)]
+	if methodName != "" && strings.Contains(methodName, "NumberBetween|") {
+		parts := strings.Split(methodName, "|")
+		if len(parts) == 3 {
+			min, _ := strconv.Atoi(parts[1])
+			max, _ := strconv.Atoi(parts[2])
+			n, _ := faker.RandomInt(min, max)
+			if len(n) > 0 {
+				return n[0]
+			}
+		}
+	}
+
+	minVal := 0
+	maxVal := 999
+	if min, ok := p["minimum"].(float64); ok {
+		minVal = int(min)
+	}
+	if max, ok := p["maximum"].(float64); ok {
+		maxVal = int(max)
+	}
+	if minVal < maxVal {
+		return minVal + rand.Intn(maxVal-minVal+1)
+	}
+	return minVal
 }
 
 // getFakerValueByFormat resolves format strings (e.g. "email", "street_address") to faker values.
@@ -1339,14 +1453,76 @@ func getFakerValueByFormat(format string) any {
 		return faker.IPv6()
 	case "MacAddress":
 		return faker.MacAddress()
-	case "UUIDHyphenated":
+	case "Avatar":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
+	case "Picsum":
+		return "https://picsum.photos/200/300"
+	case "PicsumGrayscale":
+		return "https://picsum.photos/200/300?grayscale"
+	case "PicsumAvatar":
+		return fmt.Sprintf("https://picsum.photos/id/%d/150/150", rand.Intn(1000))
+	case "image.url", "image":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
+	}
+	return nil
+}
+
+// getFakerValueByFakerAttr handles faker attribute strings like "person.full_name".
+func getFakerValueByFakerAttr(fakerAttr string) any {
+	switch fakerAttr {
+	case "person.full_name", "person.fullname", "name":
+		return faker.Name() + " " + faker.LastName()
+	case "person.first_name", "firstname", "first_name":
+		return faker.FirstName()
+	case "person.last_name", "lastname", "last_name":
+		return faker.LastName()
+	case "internet.email", "email":
+		return faker.Email()
+	case "internet.username", "username":
+		return faker.Username()
+	case "internet.url", "url":
+		return faker.URL()
+	case "phone.number", "phone":
+		return faker.Phonenumber()
+	case "location.street_address", "streetaddress", "street":
+		return faker.GetRealAddress().Address
+	case "location.city", "city":
+		return faker.GetRealAddress().City
+	case "location.country", "country":
+		return faker.GetCountryInfo().Name
+	case "location.zip_code", "zipcode", "zip":
+		return faker.GetRealAddress().PostalCode
+	case "company.name", "company":
+		return faker.DomainName()
+	case "uuid":
 		return faker.UUIDHyphenated()
-	case "Price":
-		return faker.AmountWithCurrency()
-	case "CurrencyCode":
-		return faker.Currency()
+	case "avatar":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
+	case "image.url", "image":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
+	case "image.photo":
+		return "https://picsum.photos/200/300"
+	case "image.grayscale":
+		return "https://picsum.photos/200/300?grayscale"
+	case "image.seed":
+		return "https://picsum.photos/seed/" + faker.UUIDHyphenated() + "/200/300"
+	case "image.id":
+		return fmt.Sprintf("https://picsum.photos/id/%d/200/300", rand.Intn(1000))
+	case "image.id.grayscale":
+		return fmt.Sprintf("https://picsum.photos/id/%d/200/300?grayscale", rand.Intn(1000))
+	case "image.id.blur":
+		blur := 1 + rand.Intn(5)
+		return fmt.Sprintf("https://picsum.photos/id/%d/200/300?grayscale&blur=%d", rand.Intn(1000), blur)
+	case "image.webp":
+		return "https://picsum.photos/200/300.webp"
+	case "image.jpg":
+		return "https://picsum.photos/200/300.jpg"
+case "image.avatar":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
+	case "photo.avatar":
+		return "https://i.pravatar.cc/150?u=" + faker.UUIDHyphenated()
 	default:
-		return nil
+		return fakerAttr
 	}
 }
 
