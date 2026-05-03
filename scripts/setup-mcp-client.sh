@@ -168,7 +168,7 @@ setup_claude_desktop() {
         Linux)  config_file="${HOME}/.config/Claude/claude_desktop_config.json" ;;
         *)
             error "Unsupported OS: $(uname -s)"
-            error "Edit the config file manually — see docs/mcp-connect.md"
+            error "Edit the config file manually — see dev-docs/mcp-connect.md"
             return 1
             ;;
     esac
@@ -321,4 +321,4 @@ case "$choice" in
 esac
 
 echo ""
-success "Done. See docs/mcp-connect.md for usage examples."
+success "Done. See dev-docs/mcp-connect.md for usage examples."

@@ -441,6 +441,7 @@ func (c *Client) MarkdownToPDF(ctx context.Context, job *MarkdownToPDFJob) (*Job
 	if job.Operation == "" {
 		job.Operation = "markdown_to_pdf"
 	}
+	job.applyThemeOverride()
 	return c.Execute(ctx, job)
 }
 
@@ -670,6 +671,7 @@ func (sc *StreamClient) MarkdownToPDF(job *MarkdownToPDFJob) (*JobResult, error)
 	if job.Operation == "" {
 		job.Operation = "markdown_to_pdf"
 	}
+	job.applyThemeOverride()
 	return sc.Execute(job)
 }
 

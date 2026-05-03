@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" class="page-markdown-to-pdf">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Markdown to PDF · DevForge Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="assets/logo.webp" width="48" height="48" alt="DevForge logo" /><span>DevForge Docs</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="cli.html">CLI</a>
+      <a href="mcp.html">MCP</a>
+      <a href="tools.html">Tools</a>
+      <a class="active" href="markdown-to-pdf.html">Markdown to PDF</a>
+    </nav>
+  </header>
+  <main class="container prose">
+    <div class="prose-body">
+      <h1>devforge_markdown_to_pdf (markdown_to_pdf)</h1>
+      <p>Converts Markdown into production-grade PDF documents for PRPs, specs, reports, invoices, and deliverables.</p>
+      <h2>Input modes (choose one)</h2>
+      <ul>
+        <li><code>input</code>: file path to a markdown file.</li>
+        <li><code>markdown_text</code>: inline UTF-8 markdown string.</li>
+        <li><code>markdown_base64</code>: base64-encoded UTF-8 markdown.</li>
+      </ul>
+      <h2>Output modes</h2>
+      <ul>
+        <li><code>output</code>: explicit file path (single output file).</li>
+        <li><code>output_dir + file_name</code>: write to directory with chosen filename.</li>
+        <li><code>inline: true</code>: return base64 PDF bytes in response.</li>
+      </ul>
+      <h2>Layout and page options</h2>
+      <ul>
+        <li><code>page_size</code>: <code>a4</code> | <code>letter</code> | <code>legal</code>.</li>
+        <li><code>page_width_mm</code> and <code>page_height_mm</code>: custom dimensions.</li>
+        <li><code>layout_mode</code>: <code>paged</code> or <code>single_page</code>.</li>
+      </ul>
+      <h2>Theme options</h2>
+      <ul>
+        <li><code>theme</code>: <code>invoice</code> | <code>scientific_article</code> | <code>professional</code> | <code>engineering</code> | <code>informational</code>.</li>
+        <li><code>theme_config</code>: raw advanced override object forwarded to dpf.</li>
+        <li><code>theme_override</code> typed fields: <code>name</code>, <code>body_font_size_pt</code>, <code>code_font_size_pt</code>, <code>heading_scale</code>, <code>margin_mm</code>.</li>
+      </ul>
+      <h2>Practical examples</h2>
+      <h3>PRP or technical spec from file</h3>
+      <pre><code class="language-json">{
+  "tool": "devforge_markdown_to_pdf",
+  "input": "PRPs/002-feature.md",
+  "output": "dist/prp.pdf",
+  "theme": "engineering",
+  "page_size": "a4"
+}</code></pre>
+      <h3>Inline report to base64 response</h3>
+      <pre><code class="language-json">{
+  "tool": "devforge_markdown_to_pdf",
+  "markdown_text": "# Incident Report\n\n## Summary\n- Resolved.",
+  "inline": true,
+  "theme": "professional"
+}</code></pre>
+      <h3>Invoice-style PDF with themed overrides</h3>
+      <pre><code class="language-json">{
+  "tool": "devforge_markdown_to_pdf",
+  "input": "docs-data/invoice.md",
+  "output_dir": "dist/pdf",
+  "file_name": "invoice-042.pdf",
+  "theme": "invoice",
+  "theme_override": {
+    "name": "Invoice Tight",
+    "body_font_size_pt": 10,
+    "code_font_size_pt": 9,
+    "heading_scale": 1.08,
+    "margin_mm": 12
+  }
+}</code></pre>
+      <h3>Base64 source for generated markdown</h3>
+      <pre><code class="language-json">{
+  "tool": "devforge_markdown_to_pdf",
+  "markdown_base64": "IyBUaXRsZQoKQ29udGVudC4=",
+  "output": "dist/generated.pdf",
+  "layout_mode": "single_page",
+  "theme_config": {
+    "code_block_background": "#F6F8FA"
+  }
+}</code></pre>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <section>
+        <h3>DevForge</h3>
+        <p>Built by <a href="https://github.com/GustavoGutierrez">Gustavo Gutiérrez</a> — Bogotá, Colombia</p>
+        <p class="muted">Licensed under <a href="https://github.com/GustavoGutierrez/devforge/blob/main/LICENSE">MIT</a></p>
+      </section>
+      <section>
+        <h3>Quick links</h3>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="markdown-to-pdf.html">Markdown to PDF</a></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Project &amp; Author</h3>
+        <ul>
+          <li><a href="https://github.com/GustavoGutierrez/devforge">GitHub Repository</a></li>
+          <li><a href="https://github.com/GustavoGutierrez">GitHub Profile</a></li>
+          <li><a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado">LinkedIn</a></li>
+        </ul>
+      </section>
+    </div>
+  </footer>
+</body>
+</html>

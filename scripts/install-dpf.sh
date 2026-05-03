@@ -217,4 +217,4 @@ download_dpf "${TAG}" "${OUTPUT_PATH}"
 
 echo ""
 info "Done. Run 'chmod +x ${OUTPUT_PATH}' to ensure it is executable."
-info "See docs/install.md for the full installation guide."
+info "See dev-docs/install.md for the full installation guide."

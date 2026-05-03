@@ -2,7 +2,7 @@
   <img src="devforge.png" width="1024" height="340" alt="DevForge MCP" />
 </p>
 
-[![Version](https://img.shields.io/badge/version-2.4.7-blue.svg)](https://github.com/GustavoGutierrez/devforge)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](https://github.com/GustavoGutierrez/devforge)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.24+-00ADD8.svg?logo=go&logoColor=white)](https://golang.org)
 [![MCP](https://img.shields.io/badge/MCP-stdio-8B5CF6.svg?logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io)
@@ -81,7 +81,7 @@ All three binaries are stateless — no database, no embeddings, no persistent s
 | **Backend Utilities** | `sql_format`, `backend_conn_string`, `backend_log_parse`, `backend_env_inspect`, `backend_mq_payload`, `backend_cidr_subnet` | SQL formatting, DSN builder, log parsing, .env validation, MQ payloads, and CIDR subnet calculations |
 | **Code Utilities** | `code_json_to_types`, `code_ast_explorer`, `code_format`, `code_metrics`, `code_template` | JSON-to-code type generation, JS/TS AST outline, code formatting, metrics (LOC/complexity), template rendering |
 
-All **60 developer utilities** (and **90 total tools** including media/AI) are documented in [`docs/tools/`](docs/tools/).
+All **60 developer utilities** (and **90 total tools** including media/AI) are documented in [`dev-docs/tools/`](dev-docs/tools/).
 
 ---
 
@@ -115,7 +115,7 @@ go build ./...
 
 > Requires Go 1.24+. CGO is not required. For media tools, `dpf` and FFmpeg must be available in `$PATH`.
 
-Refer to [docs/install.md](docs/install.md) for full setup and MCP client configuration.
+Refer to [dev-docs/install.md](dev-docs/install.md) for full setup and MCP client configuration.
 
 ---
 
@@ -137,7 +137,7 @@ Add the following to your MCP client configuration (e.g. `claude_desktop_config.
 
 > Works with Claude Desktop, Cursor, and any MCP-compatible client using the stdio transport.
 
-See [docs/mcp-connect.md](docs/mcp-connect.md) for platform-specific instructions and tips.
+See [dev-docs/mcp-connect.md](dev-docs/mcp-connect.md) for platform-specific instructions and tips.
 
 ---
 
@@ -177,11 +177,12 @@ Each archive contains `devforge`, `devforge-mcp`, and `dpf`. The Homebrew formul
 
 | Document | Description |
 |----------|-------------|
-| [docs/install.md](docs/install.md) | Installation & platform notes |
-| [docs/cli-tui.md](docs/cli-tui.md) | CLI/TUI reference |
-| [docs/mcp-connect.md](docs/mcp-connect.md) | MCP client connection guide |
-| [docs/overview.md](docs/overview.md) | Architecture overview |
-| [docs/tools/](docs/tools/) | Per-tool documentation |
+| [docs/](docs/) | GitHub Pages static documentation site |
+| [dev-docs/install.md](dev-docs/install.md) | Installation & platform notes |
+| [dev-docs/cli-tui.md](dev-docs/cli-tui.md) | CLI/TUI reference |
+| [dev-docs/mcp-connect.md](dev-docs/mcp-connect.md) | MCP client connection guide |
+| [dev-docs/overview.md](dev-docs/overview.md) | Architecture overview |
+| [dev-docs/tools/](dev-docs/tools/) | Per-tool markdown reference |
 | [packaging/homebrew/README.md](packaging/homebrew/README.md) | Homebrew packaging notes |
 
 ---

@@ -93,10 +93,57 @@ func TestMarkdownToPDF_StreamFailureReturnsErrorJSON(t *testing.T) {
 	}
 }
 
+func TestMarkdownToPDF_ThemeOverrideIsForwardedAsThemeConfig(t *testing.T) {
+	srv := newMarkdownToPDFThemeServer(t)
+
+	body := 11.5
+	code := 9.5
+	heading := 1.4
+	margin := 14.0
+
+	result := srv.MarkdownToPDF(context.Background(), tools.MarkdownToPDFInput{
+		MarkdownText: "# Hola\n\nPDF inline",
+		Inline:       true,
+		Theme:        "engineering",
+		ThemeOverride: &tools.MarkdownThemeOverride{
+			Name:           "custom-engineering",
+			BodyFontSizePT: &body,
+			CodeFontSizePT: &code,
+			HeadingScale:   &heading,
+			MarginMM:       &margin,
+		},
+	})
+
+	var out tools.MarkdownToPDFOutput
+	if err := json.Unmarshal([]byte(result), &out); err != nil {
+		t.Fatalf("invalid JSON: %v -- got: %s", err, result)
+	}
+	if !out.Success {
+		t.Fatalf("expected success=true, got: %s", result)
+	}
+}
+
 func newMarkdownToPDFServer(t *testing.T) *tools.Server {
 	t.Helper()
 
 	binaryPath := writeFakeMarkdownDPF(t)
+	sc, err := dpf.NewStreamClient(binaryPath)
+	if err != nil {
+		t.Fatalf("NewStreamClient returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := sc.Close(); closeErr != nil {
+			t.Fatalf("Close returned error: %v", closeErr)
+		}
+	})
+
+	return &tools.Server{DPF: sc}
+}
+
+func newMarkdownToPDFThemeServer(t *testing.T) *tools.Server {
+	t.Helper()
+
+	binaryPath := writeFakeMarkdownDPFThemeAware(t)
 	sc, err := dpf.NewStreamClient(binaryPath)
 	if err != nil {
 		t.Fatalf("NewStreamClient returned error: %v", err)
@@ -130,6 +177,41 @@ case "${1:-}" in
           ;;
         *)
           printf '%s\n' '{"success":true,"operation":"markdown_to_pdf","outputs":[{"path":"inline://test.pdf","format":"pdf","size_bytes":123,"data_base64":"UEZERkFLRQ=="}],"elapsed_ms":2,"metadata":{"backend":"typst","theme":"engineering","inline":true}}'
+          ;;
+      esac
+    done
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake dpf: %v", err)
+	}
+	return path
+}
+
+func writeFakeMarkdownDPFThemeAware(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "dpf")
+	script := `#!/usr/bin/env bash
+set -euo pipefail
+
+case "${1:-}" in
+  caps)
+    printf '%s\n' '{"version":"0.4.2","features":{"streaming_mode":true,"markdown_to_pdf":true}}'
+    ;;
+  --stream)
+    while IFS= read -r line; do
+      case "$line" in
+        *'"theme_config":{"name":"custom-engineering","body_font_size_pt":11.5,"code_font_size_pt":9.5,"heading_scale":1.4,"margin_mm":14}'*)
+          printf '%s\n' '{"success":true,"operation":"markdown_to_pdf","outputs":[],"elapsed_ms":1}'
+          ;;
+        *)
+          printf '%s\n' '{"success":false,"operation":"markdown_to_pdf","error":"missing expected theme_config override","elapsed_ms":1}'
           ;;
       esac
     done

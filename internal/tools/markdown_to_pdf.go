@@ -23,7 +23,17 @@ type MarkdownToPDFInput struct {
 	LayoutMode     string                 `json:"layout_mode,omitempty"`
 	Theme          string                 `json:"theme,omitempty"`
 	ThemeConfig    map[string]interface{} `json:"theme_config,omitempty"`
+	ThemeOverride  *MarkdownThemeOverride `json:"theme_override,omitempty"`
 	ResourceFiles  map[string]string      `json:"resource_files,omitempty"`
+}
+
+// MarkdownThemeOverride exposes typed markdown theme customizations.
+type MarkdownThemeOverride struct {
+	Name           string   `json:"name,omitempty"`
+	BodyFontSizePT *float64 `json:"body_font_size_pt,omitempty"`
+	CodeFontSizePT *float64 `json:"code_font_size_pt,omitempty"`
+	HeadingScale   *float64 `json:"heading_scale,omitempty"`
+	MarginMM       *float64 `json:"margin_mm,omitempty"`
 }
 
 // MarkdownToPDFOutputFile represents one produced PDF artifact.
@@ -119,6 +129,15 @@ func (s *Server) MarkdownToPDF(ctx context.Context, input MarkdownToPDFInput) st
 			return errorJSON("invalid theme_config: " + err.Error())
 		}
 		job.ThemeConfig = data
+	}
+	if input.ThemeOverride != nil {
+		job.ThemeOverride = &dpf.ThemeOverride{
+			Name:         strings.TrimSpace(input.ThemeOverride.Name),
+			BodyFontSize: input.ThemeOverride.BodyFontSizePT,
+			CodeFontSize: input.ThemeOverride.CodeFontSizePT,
+			HeadingScale: input.ThemeOverride.HeadingScale,
+			MarginMM:     input.ThemeOverride.MarginMM,
+		}
 	}
 
 	result, err := s.DPF.MarkdownToPDF(job)

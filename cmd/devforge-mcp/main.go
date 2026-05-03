@@ -89,7 +89,7 @@ func main() {
 	}
 
 	// 4. Build MCP server and register all tools
-	s := mcpserver.NewMCPServer("devforge", "2.4.7",
+	s := mcpserver.NewMCPServer("devforge", "2.5.0",
 		mcpserver.WithToolCapabilities(true),
 	)
 
@@ -149,7 +149,7 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 
 	// ── ui2md ────────────────────────────────────────────────────
 	s.AddTool(mcp.NewTool("ui2md",
-		mcp.WithDescription("Analyze a UI screenshot and generate a Markdown design spec using Gemini vision."),
+		mcp.WithDescription("Analyze a UI screenshot and generate a Markdown design spec (useful for PRPs, handoff docs, and implementation notes)."),
 		mcp.WithString("image_path", mcp.Required(), mcp.Description("Path to the UI image to analyze")),
 		mcp.WithString("output_dir", mcp.Description("Directory to save the generated markdown (default: same as image)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -162,20 +162,21 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 
 	// ── markdown_to_pdf ─────────────────────────────────────────
 	s.AddTool(mcp.NewTool("markdown_to_pdf",
-		mcp.WithDescription("Convert Markdown to PDF via dpf 0.4.2 using file, inline text, or base64 input."),
-		mcp.WithString("input", mcp.Description("Markdown file path")),
-		mcp.WithString("markdown_text", mcp.Description("Inline UTF-8 Markdown source")),
-		mcp.WithString("markdown_base64", mcp.Description("Base64-encoded UTF-8 Markdown source")),
-		mcp.WithString("output", mcp.Description("Explicit output PDF path")),
-		mcp.WithString("output_dir", mcp.Description("Directory output mode")),
-		mcp.WithString("file_name", mcp.Description("Optional output filename when using output_dir")),
-		mcp.WithBoolean("inline", mcp.Description("Return base64 PDF data inline")),
+		mcp.WithDescription("Convert Markdown into a PDF document (reports, PRPs, specs, technical docs, articles, invoices, deliverables). Input supports file path, inline markdown_text, or markdown_base64; output supports explicit output path, output_dir+file_name, or inline base64 PDF response."),
+		mcp.WithString("input", mcp.Description("Source mode 1: Markdown file path")),
+		mcp.WithString("markdown_text", mcp.Description("Source mode 2: inline UTF-8 Markdown content")),
+		mcp.WithString("markdown_base64", mcp.Description("Source mode 3: base64-encoded UTF-8 Markdown content")),
+		mcp.WithString("output", mcp.Description("Output mode 1: explicit PDF output path")),
+		mcp.WithString("output_dir", mcp.Description("Output mode 2: output directory (optionally combine with file_name)")),
+		mcp.WithString("file_name", mcp.Description("Optional filename when using output_dir (defaults to derived name)")),
+		mcp.WithBoolean("inline", mcp.Description("Output mode 3: return PDF bytes as base64 in tool response")),
 		mcp.WithString("page_size", mcp.Description("a4 | letter | legal")),
 		mcp.WithNumber("page_width_mm", mcp.Description("Custom page width in millimeters")),
 		mcp.WithNumber("page_height_mm", mcp.Description("Custom page height in millimeters")),
 		mcp.WithString("layout_mode", mcp.Description("paged | single_page")),
 		mcp.WithString("theme", mcp.Description("invoice | scientific_article | professional | engineering | informational")),
-		mcp.WithObject("theme_config", mcp.Description("Theme overrides forwarded to dpf")),
+		mcp.WithObject("theme_config", mcp.Description("Raw theme overrides forwarded to dpf (advanced/compatibility path; use for full custom theme payloads)")),
+		mcp.WithObject("theme_override", mcp.Description("Typed theme override fields: name, body_font_size_pt, code_font_size_pt, heading_scale, margin_mm")),
 		mcp.WithObject("resource_files", mcp.Description("Optional href-to-file mapping for inline assets")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := argsMap(req)
@@ -199,6 +200,13 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 		}
 		if themeConfig, ok := args["theme_config"].(map[string]interface{}); ok {
 			input.ThemeConfig = themeConfig
+		}
+		if rawThemeOverride, ok := args["theme_override"]; ok {
+			data, _ := json.Marshal(rawThemeOverride)
+			var themeOverride tools.MarkdownThemeOverride
+			if json.Unmarshal(data, &themeOverride) == nil {
+				input.ThemeOverride = &themeOverride
+			}
 		}
 		if resourceFiles, ok := args["resource_files"].(map[string]interface{}); ok {
 			input.ResourceFiles = make(map[string]string, len(resourceFiles))
@@ -225,7 +233,7 @@ func registerTools(s *mcpserver.MCPServer, app *mcpApp) {
 
 	// ── optimize_images ─────────────────────────────────────────
 	s.AddTool(mcp.NewTool("optimize_images",
-		mcp.WithDescription("Optimize and convert images using the Rust dpf (DevPixelForge) engine."),
+		mcp.WithDescription("Batch optimize/convert one or more images with dpf profiles (use when an agent needs many image transforms in one call)."),
 		mcp.WithArray("inputs", mcp.Required(), mcp.Description("Array of image optimization requests"),
 			mcp.Items(map[string]any{"type": "object"})),
 		mcp.WithNumber("parallelism", mcp.Description("Max parallel operations (default 4)")),

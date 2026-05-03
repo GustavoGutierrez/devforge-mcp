@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" class="page-mcp">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP · DevForge Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="assets/logo.webp" width="48" height="48" alt="DevForge logo" /><span>DevForge Docs</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="cli.html">CLI</a>
+      <a class="active" href="mcp.html">MCP</a>
+      <a href="tools.html">Tools</a>
+      <a href="markdown-to-pdf.html">Markdown to PDF</a>
+    </nav>
+  </header>
+  <main class="container prose">
+    <div class="prose-body">
+      <h1>MCP Integration Guide</h1>
+      <p><code>devforge-mcp</code> exposes tools via <strong>stdio transport only</strong>. This keeps deployment simple, local-first, and secure by default.</p>
+      <h2>Client configuration example</h2>
+      <pre><code class="language-json">{
+  "mcpServers": {
+    "devforge": {
+      "command": "/path/to/devforge-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}</code></pre>
+      <h2>Stateless execution model</h2>
+      <ul><li>No database writes or persistent runtime state between calls.</li><li>Deterministic utility behavior for reproducible agent outputs.</li><li>Structured JSON responses and explicit error objects.</li></ul>
+      <h2>How agents should use DevForge tools</h2>
+      <ol>
+        <li>Choose the minimal tool that solves the task.</li>
+        <li>Pass explicit parameters (avoid ambiguous defaults when precision matters).</li>
+        <li>Chain outputs into next steps only when required.</li>
+        <li>Treat file-writing tools carefully in production repos.</li>
+      </ol>
+      <h2>Tool naming</h2>
+      <p>Canonical MCP names in this server are unprefixed (for example <code>markdown_to_pdf</code>). Some clients display prefixed aliases such as <code>devforge_markdown_to_pdf</code>. Behavior and arguments are equivalent.</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <section>
+        <h3>DevForge</h3>
+        <p>Built by <a href="https://github.com/GustavoGutierrez">Gustavo Gutiérrez</a> — Bogotá, Colombia</p>
+        <p class="muted">Licensed under <a href="https://github.com/GustavoGutierrez/devforge/blob/main/LICENSE">MIT</a></p>
+      </section>
+      <section>
+        <h3>Quick links</h3>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="markdown-to-pdf.html">Markdown to PDF</a></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Project &amp; Author</h3>
+        <ul>
+          <li><a href="https://github.com/GustavoGutierrez/devforge">GitHub Repository</a></li>
+          <li><a href="https://github.com/GustavoGutierrez">GitHub Profile</a></li>
+          <li><a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado">LinkedIn</a></li>
+        </ul>
+      </section>
+    </div>
+  </footer>
+</body>
+</html>

@@ -2,6 +2,7 @@ package dpf
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -95,6 +96,37 @@ func TestClientAndStreamClientHandleDPFProtocol(t *testing.T) {
 		t.Fatalf("streamResult.Operation = %q", streamResult.Operation)
 	}
 }
+
+func TestThemeOverrideSerialization(t *testing.T) {
+	job := &MarkdownToPDFJob{
+		Operation:    "markdown_to_pdf",
+		MarkdownText: strPtr("# Custom Theme"),
+		Inline:       true,
+		ThemeOverride: &ThemeOverride{
+			BodyFontSize: float64Ptr(11.5),
+			CodeFontSize: float64Ptr(9.5),
+			HeadingScale: float64Ptr(1.4),
+			MarginMM:     float64Ptr(14.0),
+		},
+	}
+
+	job.applyThemeOverride()
+	if job.ThemeConfig == nil {
+		t.Fatal("expected ThemeConfig to be populated")
+	}
+
+	var override ThemeOverride
+	if err := json.Unmarshal(job.ThemeConfig, &override); err != nil {
+		t.Fatalf("ThemeConfig should unmarshal: %v", err)
+	}
+
+	if override.BodyFontSize == nil || *override.BodyFontSize != 11.5 {
+		t.Fatalf("unexpected body_font_size_pt: %v", override.BodyFontSize)
+	}
+}
+
+func strPtr(s string) *string { return &s }
+func float64Ptr(f float64) *float64 { return &f }
 
 func writeFakeDPF(t *testing.T) string {
 	t.Helper()

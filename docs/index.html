@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" class="page-index">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DevForge Docs</title>
+  <meta name="description" content="DevForge MCP and CLI documentation." />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="assets/logo.webp" width="48" height="48" alt="DevForge logo" /><span>DevForge Docs</span></a>
+    <nav>
+      <a class="active" href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a href="cli.html">CLI</a>
+      <a href="mcp.html">MCP</a>
+      <a href="tools.html">Tools</a>
+      <a href="markdown-to-pdf.html">Markdown to PDF</a>
+    </nav>
+  </header>
+  <main class="container">
+    <section class="hero">
+      <img src="assets/devforge.png" width="1024" height="340" alt="DevForge banner" loading="eager" />
+      <div class="hero-content">
+        <h1>DevForge: Stateless MCP utilities for real developer workflows</h1>
+        <p>DevForge is a Go MCP server plus CLI/TUI that gives agents and developers deterministic tools for media, code, data, backend, frontend, security, files, and automation tasks.</p>
+        <div class="cta-row">
+          <a class="btn" href="getting-started.html">Quick Start</a>
+          <a class="btn btn-ghost" href="tools.html">Browse 90 Tools</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid cards-3">
+      <article class="card"><h2>Problem solved</h2><p>Agents waste tokens rewriting utility logic (hashing, JSON transforms, image conversion, PDF generation) and can hallucinate edge cases.</p></article>
+      <article class="card"><h2>What DevForge provides</h2><p>90 stateless tools over stdio MCP and the same surface in CLI/TUI. Structured outputs, predictable behavior, no database dependencies.</p></article>
+      <article class="card"><h2>Why this is practical</h2><p>Less prompt engineering, fewer ad-hoc scripts, faster task completion, and easier reproducibility in CI and local workflows.</p></article>
+    </section>
+
+    <section class="card">
+      <h2>Documentation map</h2>
+      <ul>
+        <li><a href="getting-started.html">Getting Started</a> — installation, first run, and project setup.</li>
+        <li><a href="cli.html">CLI/TUI Guide</a> — daily usage from terminal.</li>
+        <li><a href="mcp.html">MCP Guide</a> — agent integration and transport behavior.</li>
+        <li><a href="tools.html">Tool Catalog</a> — searchable list of all tools by category.</li>
+        <li><a href="markdown-to-pdf.html">Markdown to PDF Deep Dive</a> — complete operational guide.</li>
+      </ul>
+      <p class="muted">Legacy markdown docs are preserved in <code>dev-docs/</code>.</p>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <section>
+        <h3>DevForge</h3>
+        <p>Built by <a href="https://github.com/GustavoGutierrez">Gustavo Gutiérrez</a> — Bogotá, Colombia</p>
+        <p class="muted">Licensed under <a href="https://github.com/GustavoGutierrez/devforge/blob/main/LICENSE">MIT</a></p>
+      </section>
+      <section>
+        <h3>Quick links</h3>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="markdown-to-pdf.html">Markdown to PDF</a></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Project &amp; Author</h3>
+        <ul>
+          <li><a href="https://github.com/GustavoGutierrez/devforge">GitHub Repository</a></li>
+          <li><a href="https://github.com/GustavoGutierrez">GitHub Profile</a></li>
+          <li><a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado">LinkedIn</a></li>
+        </ul>
+      </section>
+    </div>
+  </footer>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>

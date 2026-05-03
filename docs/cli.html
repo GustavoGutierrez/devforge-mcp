@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" class="page-cli">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CLI · DevForge Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="assets/logo.webp" width="48" height="48" alt="DevForge logo" /><span>DevForge Docs</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting Started</a>
+      <a class="active" href="cli.html">CLI</a>
+      <a href="mcp.html">MCP</a>
+      <a href="tools.html">Tools</a>
+      <a href="markdown-to-pdf.html">Markdown to PDF</a>
+    </nav>
+  </header>
+  <main class="container prose">
+    <div class="prose-body">
+      <h1>CLI / TUI Usage</h1>
+      <p>The <code>devforge</code> binary exposes the same tool surface available through MCP, but optimized for interactive terminal workflows.</p>
+      <h2>Why use the CLI</h2>
+      <ul><li>Manual execution and debugging of tool calls before wiring into agents.</li><li>Local productivity for one-off conversions, formatting, cryptography, and media processing.</li><li>Fast validation of arguments and output structure.</li></ul>
+      <h2>Basic commands</h2>
+      <pre><code class="language-bash">devforge --help
+devforge</code></pre>
+      <h2>Typical workflow</h2>
+      <ol><li>Pick a tool (for example <code>markdown_to_pdf</code>).</li><li>Provide required and optional inputs.</li><li>Inspect structured JSON response.</li><li>Reuse the same payload in MCP-enabled agents.</li></ol>
+      <h2>CLI + MCP parity</h2>
+      <p>Tool names, argument shapes, and behavior should remain consistent between CLI and MCP server.</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <section>
+        <h3>DevForge</h3>
+        <p>Built by <a href="https://github.com/GustavoGutierrez">Gustavo Gutiérrez</a> — Bogotá, Colombia</p>
+        <p class="muted">Licensed under <a href="https://github.com/GustavoGutierrez/devforge/blob/main/LICENSE">MIT</a></p>
+      </section>
+      <section>
+        <h3>Quick links</h3>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="markdown-to-pdf.html">Markdown to PDF</a></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Project &amp; Author</h3>
+        <ul>
+          <li><a href="https://github.com/GustavoGutierrez/devforge">GitHub Repository</a></li>
+          <li><a href="https://github.com/GustavoGutierrez">GitHub Profile</a></li>
+          <li><a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado">LinkedIn</a></li>
+        </ul>
+      </section>
+    </div>
+  </footer>
+</body>
+</html>

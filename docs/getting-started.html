@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" class="page-getting-started">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Getting Started · DevForge Docs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img src="assets/logo.webp" width="48" height="48" alt="DevForge logo" /><span>DevForge Docs</span></a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a class="active" href="getting-started.html">Getting Started</a>
+      <a href="cli.html">CLI</a>
+      <a href="mcp.html">MCP</a>
+      <a href="tools.html">Tools</a>
+      <a href="markdown-to-pdf.html">Markdown to PDF</a>
+    </nav>
+  </header>
+  <main class="container prose">
+    <div class="prose-body">
+      <h1>Getting Started</h1>
+      <p>DevForge ships three binaries: <code>devforge</code> (CLI/TUI), <code>devforge-mcp</code> (MCP stdio server), and <code>dpf</code> (media runtime).</p>
+      <h2>Install</h2>
+      <pre><code class="language-bash">brew install GustavoGutierrez/devforge/devforge</code></pre>
+      <p>Or from source:</p>
+      <pre><code class="language-bash">git clone https://github.com/GustavoGutierrez/devforge.git
+cd devforge
+go build ./...</code></pre>
+      <h2>Requirements</h2>
+      <ul><li>Go 1.24+ for source builds.</li><li>FFmpeg in <code>$PATH</code> for video/audio tools.</li><li>Gemini API key only for Gemini-backed tools.</li></ul>
+      <h2>Configuration</h2>
+      <pre><code class="language-json">{
+  "gemini_api_key": "",
+  "image_model": "gemini-2.5-flash-image"
+}</code></pre>
+      <p>Default path: <code>~/.config/devforge/config.json</code>. Override with <code>DEV_FORGE_CONFIG</code>.</p>
+      <h2>Legacy markdown docs</h2>
+      <p>Detailed developer markdown docs remain in <code>dev-docs/</code>, including install and MCP connection guides.</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <section>
+        <h3>DevForge</h3>
+        <p>Built by <a href="https://github.com/GustavoGutierrez">Gustavo Gutiérrez</a> — Bogotá, Colombia</p>
+        <p class="muted">Licensed under <a href="https://github.com/GustavoGutierrez/devforge/blob/main/LICENSE">MIT</a></p>
+      </section>
+      <section>
+        <h3>Quick links</h3>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="markdown-to-pdf.html">Markdown to PDF</a></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Project &amp; Author</h3>
+        <ul>
+          <li><a href="https://github.com/GustavoGutierrez/devforge">GitHub Repository</a></li>
+          <li><a href="https://github.com/GustavoGutierrez">GitHub Profile</a></li>
+          <li><a href="https://www.linkedin.com/in/gustavo-gutierrez-mercado">LinkedIn</a></li>
+        </ul>
+      </section>
+    </div>
+  </footer>
+</body>
+</html>
