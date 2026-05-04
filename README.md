@@ -223,6 +223,12 @@ If you use DevForge in your agent setup and notice a gap — a tool you keep wri
 
 **[Gustavo Gutierrez](https://github.com/GustavoGutierrez)** — Author and principal maintainer of DevForge MCP and [DevPixelForge](https://github.com/GustavoGutierrez/devpixelforge).
 
+## Support
+
+If DevForge has been useful to you, consider supporting development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z81YYSUI)
+
 ---
 
 ## License
